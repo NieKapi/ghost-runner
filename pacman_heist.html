@@ -1,0 +1,2441 @@
+<!DOCTYPE html>
+<html lang="pl" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ghost Runner Grid: Pac-Man Cyber Heist</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --neon-cyan: #00f3ff;
+            --neon-pink: #ff007f;
+            --neon-emerald: #10b981;
+            --neon-gold: #ffd700;
+            --bg-dark: #06080f;
+        }
+        body {
+            background-color: var(--bg-dark);
+            background-image:
+                radial-gradient(circle at 15% 50%, rgba(16, 185, 129, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 85% 30%, rgba(0, 243, 255, 0.08) 0%, transparent 50%),
+                linear-gradient(0deg, rgba(8,10,18,0.95) 0%, rgba(5,6,11,1) 100%);
+            font-family: 'Rajdhani', sans-serif;
+            color: #e2e8f0;
+            overflow-x: hidden;
+            user-select: none;
+        }
+        .font-orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
+        .cyber-panel {
+            background: rgba(13, 17, 28, 0.88);
+            border: 1px solid rgba(0, 243, 255, 0.25);
+            box-shadow: 0 0 18px rgba(0, 0, 0, 0.85), inset 0 0 12px rgba(0, 243, 255, 0.05);
+            backdrop-filter: blur(8px);
+        }
+        .cyber-panel-pink {
+            background: rgba(24, 11, 22, 0.9);
+            border: 1px solid rgba(255, 0, 127, 0.4);
+            box-shadow: 0 0 22px rgba(255, 0, 127, 0.18), inset 0 0 15px rgba(255, 0, 127, 0.08);
+        }
+        .neon-text-cyan {
+            text-shadow: 0 0 8px rgba(0, 243, 255, 0.75);
+        }
+        .skill-btn {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        .skill-btn:not(:disabled):hover {
+            transform: translateY(-2px);
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.35);
+        }
+        .skill-btn:not(:disabled):active {
+            transform: translateY(1px);
+        }
+        .skill-btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            filter: grayscale(70%);
+        }
+        .card-choice {
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .card-choice:hover {
+            transform: translateY(-8px) scale(1.02);
+            border-color: var(--neon-cyan);
+            box-shadow: 0 10px 25px -5px rgba(0, 243, 255, 0.4);
+        }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: #0a0b10; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--neon-cyan); }
+
+        @keyframes pulse-border {
+            0%, 100% { border-color: rgba(255, 0, 127, 0.4); }
+            50% { border-color: rgba(255, 0, 127, 1); }
+        }
+        .boss-active-border {
+            animation: pulse-border 1.5s infinite;
+        }
+        .shake {
+            animation: shakeAnim 0.3s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        @keyframes shakeAnim {
+            10%, 90% { transform: translate3d(-3px, 0, 0); }
+            20%, 80% { transform: translate3d(5px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+            40%, 60% { transform: translate3d(6px, 0, 0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between p-2 md:p-4 select-none">
+
+    <!-- TOP BAR: Sector, Stealth Status, Data Progress & Stats -->
+    <header class="max-w-6xl w-full mx-auto mb-2">
+        <div class="cyber-panel rounded-xl p-3 flex flex-col md:flex-row items-center justify-between gap-3" id="topStatusPanel">
+            <!-- Sector Title -->
+            <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-400 flex items-center justify-center text-emerald-400 font-orbitron font-bold text-lg shadow-[0_0_10px_rgba(16,185,129,0.3)]" id="stageBadge">
+                        1
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h1 class="font-orbitron font-extrabold text-base md:text-lg tracking-wider text-white uppercase" id="stageTitle">SEKTOR 1: SERWEROWNIA</h1>
+                            <span id="bossTag" class="hidden px-2 py-0.5 text-[10px] font-orbitron font-bold bg-pink-600 text-white rounded animate-pulse">BOSS AI</span>
+                            <span id="alertBadge" class="px-2 py-0.5 text-[10px] font-orbitron font-bold bg-emerald-950 text-emerald-400 border border-emerald-500/40 rounded">UKRYCIE</span>
+                        </div>
+                        <p class="text-xs text-slate-400" id="stageSubtitle">Zbierz wszystkie pakiety Danych i unikaj stożków wzroku Strażników</p>
+                    </div>
+                </div>
+                <button id="soundToggleBtn" class="md:hidden p-2 rounded-lg bg-slate-800/80 text-cyan-400 border border-slate-700">
+                    <i class="fa-solid fa-volume-high" id="soundIconMobile"></i>
+                </button>
+            </div>
+
+            <!-- Data Extraction Progress & Boss Timer -->
+            <div class="w-full md:flex-1 max-w-md mx-auto">
+                <div class="flex justify-between text-xs font-bold mb-1">
+                    <span id="progressLabel" class="text-emerald-400 uppercase tracking-wider font-orbitron">WYKRADANIE DANYCH</span>
+                    <span id="progressNumbers" class="font-orbitron text-white">0 / 0 DANYCH</span>
+                </div>
+                <div class="w-full h-3.5 bg-slate-900 rounded-full overflow-hidden border border-slate-700/80 p-0.5 relative">
+                    <div id="stageProgressBar" class="h-full bg-gradient-to-r from-emerald-500 via-cyan-400 to-blue-500 rounded-full transition-all duration-200" style="width: 0%"></div>
+                </div>
+                <!-- Boss Attack Timer Bar -->
+                <div id="bossTimerContainer" class="hidden mt-1.5">
+                    <div class="flex justify-between text-[10px] text-pink-400 font-bold mb-0.5">
+                        <span id="bossAbilityName"><i class="fa-solid fa-skull-crossbones mr-1"></i>PROTOKÓŁ BOSSA ZA:</span>
+                        <span id="bossTimerText">7.5s</span>
+                    </div>
+                    <div class="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden">
+                        <div id="bossAttackBar" class="h-full bg-pink-500 transition-all duration-100" style="width: 100%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats & Quick Buttons -->
+            <div class="flex items-center gap-4 w-full md:w-auto justify-around md:justify-end border-t md:border-t-0 border-slate-800 pt-2 md:pt-0">
+                <div class="text-center">
+                    <div class="text-[10px] text-rose-400 uppercase font-bold tracking-wider">INTEGRALNOŚĆ (HP)</div>
+                    <div id="hpDisplay" class="font-orbitron font-bold text-sm md:text-base text-rose-400 flex items-center gap-1 justify-center">
+                        <!-- Hearts injected here -->
+                    </div>
+                </div>
+                <div class="text-center">
+                    <div class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">WYNIK</div>
+                    <div id="scoreDisplay" class="font-orbitron font-bold text-base md:text-lg text-white">0</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-[10px] text-amber-400 uppercase font-bold tracking-wider">KREDYTY</div>
+                    <div class="font-orbitron font-bold text-base md:text-lg text-amber-400 flex items-center gap-1 justify-center">
+                        <i class="fa-solid fa-microchip text-xs"></i> <span id="goldDisplay">15</span>
+                    </div>
+                </div>
+                <button id="pauseBtnDesktop" onclick="game.togglePause()" title="Pauza (P)" class="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-800/90 hover:bg-slate-700 text-amber-400 border border-slate-700 transition">
+                    <i class="fa-solid fa-pause" id="pauseIcon"></i>
+                </button>
+                <button id="soundToggleBtnDesktop" title="Dźwięk Wł/Wył" class="hidden md:flex w-9 h-9 items-center justify-center rounded-lg bg-slate-800/90 hover:bg-slate-700 text-cyan-400 border border-slate-700 transition">
+                    <i class="fa-solid fa-volume-high" id="soundIconDesktop"></i>
+                </button>
+                <button id="helpBtn" title="Instrukcja Operacyjna" class="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-800/90 hover:bg-slate-700 text-purple-400 border border-slate-700 transition">
+                    <i class="fa-solid fa-circle-question"></i>
+                </button>
+                <a href="https://niekapi.github.io/webgames/" title="Strona Główna (Wybór Gier)" class="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-800/90 hover:bg-slate-700 text-emerald-400 border border-slate-700 transition">
+                    <i class="fa-solid fa-house"></i>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN GAME AREA -->
+    <main class="max-w-6xl w-full mx-auto flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3 items-start my-auto">
+
+        <!-- LEFT COLUMN: RAM (Mana) & 4 Cyber-Stealth Skill Slots -->
+        <div class="lg:col-span-3 flex flex-col gap-3 order-2 lg:order-1">
+            <div class="cyber-panel rounded-xl p-3 flex flex-col gap-2.5">
+                <div>
+                    <div class="flex justify-between items-center text-xs font-bold mb-1">
+                        <span class="font-orbitron text-cyan-400 flex items-center gap-1.5">
+                            <i class="fa-solid fa-bolt text-emerald-400"></i> PAMIĘĆ RAM (ENERGIA)
+                        </span>
+                        <span id="manaText" class="font-orbitron text-white">25 / 100</span>
+                    </div>
+                    <div class="w-full h-3 bg-slate-950 rounded-full overflow-hidden border border-cyan-900/60 p-0.5">
+                        <div id="manaBar" class="h-full bg-gradient-to-r from-emerald-500 to-cyan-400 rounded-full transition-all duration-300 shadow-[0_0_10px_rgba(0,243,255,0.6)]" style="width: 25%"></div>
+                    </div>
+                    <p class="text-[11px] text-slate-400 mt-1">Zbieraj węzły Danych, Skarbce i pożeraj Strażników, by ładować RAM.</p>
+                </div>
+
+                <div class="flex justify-between items-center border-b border-slate-800 pb-1">
+                    <span class="text-xs font-orbitron font-bold text-slate-300 uppercase tracking-wider">
+                        MODUŁY HAKERSKIE (1-4)
+                    </span>
+                    <span id="skillSlotsCountBadge" class="text-[10px] font-orbitron bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 px-1.5 py-0.2 rounded">0 / 4</span>
+                </div>
+
+                <!-- Dynamic 4 Skill Slots -->
+                <div id="skillsContainer" class="flex flex-col gap-2">
+                    <!-- Injected by renderSkillSlots() -->
+                </div>
+            </div>
+
+            <!-- STEALTH & OVERCLOCK STATUS CARD -->
+            <div class="cyber-panel rounded-xl p-3">
+                <div class="text-xs font-orbitron font-bold text-emerald-400 tracking-wider border-b border-slate-800 pb-1 mb-2">
+                    RADAR TAKTYCZNY
+                </div>
+                <div class="space-y-1.5 text-xs">
+                    <div class="flex justify-between items-center">
+                        <span class="text-slate-400">Prędkość Biegacza:</span>
+                        <span id="statSpeed" class="font-orbitron font-bold text-cyan-300">100%</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-slate-400">Czas Overclocku:</span>
+                        <span id="statOverclock" class="font-orbitron font-bold text-amber-300">5.5s</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-slate-400">Mnożnik Punktów:</span>
+                        <span id="statMult" class="font-orbitron font-bold text-purple-300">1.0x</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CENTER COLUMN: Maze Canvas -->
+        <div class="lg:col-span-6 flex flex-col items-center justify-center order-1 lg:order-2">
+            <div id="boardWrapper" class="relative p-2 rounded-2xl cyber-panel flex flex-col items-center shadow-[0_0_35px_rgba(0,0,0,0.9)]">
+
+                <!-- Active Status Pills -->
+                <div id="statusBadgesContainer" class="absolute top-4 left-4 right-4 z-10 flex flex-wrap gap-1.5 pointer-events-none justify-center"></div>
+
+                <!-- Main Maze Canvas (19x19 grid -> 532x532 px) -->
+                <canvas id="gameCanvas" width="532" height="532" class="bg-slate-950 rounded-xl border border-slate-800 shadow-inner block max-h-[68vh] w-auto aspect-square"></canvas>
+
+                <!-- Pause Overlay -->
+                <div id="pauseOverlay" class="hidden absolute inset-2 bg-slate-950/85 backdrop-blur-sm rounded-xl z-20 flex flex-col items-center justify-center p-4 text-center">
+                    <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-400 flex items-center justify-center text-amber-400 text-xl mb-3">
+                        <i class="fa-solid fa-pause"></i>
+                    </div>
+                    <h3 class="font-orbitron font-black text-xl text-white tracking-wider mb-1">PAUZA OPERACYJNA</h3>
+                    <p class="text-xs text-slate-400 mb-4">Naciśnij <strong class="text-amber-400">P / ESC</strong> lub kliknij poniżej, aby wznowić</p>
+                    <button onclick="game.togglePause()" class="px-5 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-orbitron font-bold text-xs uppercase transition">
+                        WZNÓW MISJĘ
+                    </button>
+                </div>
+
+                <!-- Floating Combat Text Container -->
+                <div id="floatingTextContainer" class="absolute inset-0 pointer-events-none overflow-hidden"></div>
+            </div>
+
+            <!-- Mobile / Touch D-Pad Controls -->
+            <div class="grid grid-cols-4 gap-2 w-full max-w-[360px] mt-2 lg:hidden">
+                <button onclick="game.setDesiredDir(-1, 0)" class="cyber-panel py-3 rounded-lg active:bg-cyan-500/20 text-cyan-300 font-bold flex items-center justify-center">
+                    <i class="fa-solid fa-arrow-left text-lg"></i>
+                </button>
+                <button onclick="game.setDesiredDir(0, -1)" class="cyber-panel py-3 rounded-lg active:bg-cyan-500/20 text-cyan-300 font-bold flex items-center justify-center">
+                    <i class="fa-solid fa-arrow-up text-lg"></i>
+                </button>
+                <button onclick="game.setDesiredDir(0, 1)" class="cyber-panel py-3 rounded-lg active:bg-cyan-500/20 text-cyan-300 font-bold flex items-center justify-center">
+                    <i class="fa-solid fa-arrow-down text-lg"></i>
+                </button>
+                <button onclick="game.setDesiredDir(1, 0)" class="cyber-panel py-3 rounded-lg active:bg-cyan-500/20 text-cyan-300 font-bold flex items-center justify-center">
+                    <i class="fa-solid fa-arrow-right text-lg"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: Relics Inventory & Cyber Grid Legend -->
+        <div class="lg:col-span-3 flex flex-col gap-3 order-3">
+            <!-- RELICS INVENTORY -->
+            <div class="cyber-panel rounded-xl p-3 flex flex-col flex-1 min-h-[240px]">
+                <div class="flex justify-between items-center border-b border-slate-800 pb-1.5 mb-2">
+                    <span class="text-xs font-orbitron font-bold text-amber-400 tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-microchip"></i> IMPLANTY PASYWNE
+                    </span>
+                    <span id="relicCountBadge" class="text-xs font-orbitron bg-amber-500/10 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded">0</span>
+                </div>
+
+                <div id="relicsList" class="flex flex-col gap-2 max-h-[280px] overflow-y-auto pr-1">
+                    <div class="text-xs text-slate-500 italic text-center py-8">
+                        Wykradnij wszystkie dane w 1. sektorze, aby zainstalować swój pierwszy moduł lub implant.
+                    </div>
+                </div>
+            </div>
+
+            <!-- MINI LEGEND -->
+            <div class="cyber-panel rounded-xl p-3">
+                <div class="text-xs font-orbitron font-bold text-cyan-400 tracking-wider border-b border-slate-800 pb-1 mb-2">
+                    OBIEKTY W SERWEROWNI
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <div class="flex items-center gap-2 bg-slate-900/70 p-1.5 rounded border border-slate-800">
+                        <span class="w-5 h-5 rounded-full bg-amber-500/20 border border-amber-400 flex items-center justify-center text-amber-300 font-bold text-[10px]">⚡</span>
+                        <div>
+                            <div class="font-bold text-amber-300 leading-none">Overclock</div>
+                            <div class="text-[10px] text-slate-400">Tryb pożerania AI</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 bg-slate-900/70 p-1.5 rounded border border-slate-800">
+                        <span class="w-5 h-5 rounded bg-yellow-500/20 border border-yellow-400 flex items-center justify-center text-yellow-300 font-bold text-[10px]">💎</span>
+                        <div>
+                            <div class="font-bold text-yellow-300 leading-none">Skarbiec</div>
+                            <div class="text-[10px] text-slate-400">+Kredyty i RAM</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 bg-slate-900/70 p-1.5 rounded border border-slate-800">
+                        <span class="w-5 h-5 rounded bg-rose-500/20 border border-rose-500 flex items-center justify-center text-rose-400 font-bold text-[10px]">━</span>
+                        <div>
+                            <div class="font-bold text-rose-300 leading-none">Bramka Laser</div>
+                            <div class="text-[10px] text-slate-400">Pulsująca bariera</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 bg-slate-900/70 p-1.5 rounded border border-slate-800">
+                        <span class="w-5 h-5 rounded bg-emerald-500/20 border border-emerald-400 flex items-center justify-center text-emerald-300 font-bold text-[10px]">👁️</span>
+                        <div>
+                            <div class="font-bold text-emerald-300 leading-none">Stożek Wzroku</div>
+                            <div class="text-[10px] text-slate-400">Wywołuje Alarm!</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- FOOTER: Controls Legend -->
+    <footer class="max-w-6xl w-full mx-auto mt-2 hidden md:block">
+        <div class="cyber-panel rounded-xl px-4 py-2 flex flex-wrap items-center justify-between text-xs text-slate-400">
+            <div class="flex items-center gap-4">
+                <span><strong class="text-cyan-400 font-orbitron">STRZAŁKI / WASD:</strong> Ruch Biegacza (kolejkowanie zakrętów)</span>
+                <span><strong class="text-purple-400 font-orbitron">KLAWISZE 1 - 4:</strong> Użycie odblokowanych modułów hakerskich</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <span><strong class="text-emerald-400 font-orbitron">BOCZNE TUNELE:</strong> Przejście na drugą stronę mapy</span>
+                <span><strong class="text-amber-400 font-orbitron">P / ESC:</strong> Pauza</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ================= MODALS ================= -->
+
+    <!-- DRAFT / BLACK MARKET MODAL -->
+    <div id="draftModal" class="hidden fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="max-w-4xl w-full cyber-panel rounded-2xl p-6 border-2 border-cyan-500/50 shadow-[0_0_50px_rgba(0,243,255,0.2)] max-h-[95vh] overflow-y-auto">
+            <div class="text-center mb-5">
+                <div class="inline-block px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-400 text-emerald-300 font-orbitron text-xs font-bold mb-2">
+                    DANE WYKRADZIONE — SEKTOR UKOŃCZONY!
+                </div>
+                <h2 class="font-orbitron font-black text-2xl md:text-3xl text-white tracking-wider uppercase neon-text-cyan">
+                    CZARNY RYNEK CYBER-MODUŁÓW
+                </h2>
+                <p class="text-slate-400 text-sm mt-1">Odblokuj nowy moduł aktywny (sloty 1-4), ulepsz posiadany lub zainstaluj pasywny implant.</p>
+            </div>
+
+            <!-- 3 Cards Container -->
+            <div id="draftCardsContainer" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6"></div>
+
+            <!-- Black Market Shop Actions -->
+            <div class="flex flex-wrap items-center justify-between gap-4 border-t border-slate-800 pt-4">
+                <div class="flex items-center gap-2 text-amber-400 font-orbitron font-bold">
+                    <i class="fa-solid fa-microchip"></i> Kredyty: <span id="draftGoldDisplay">0</span> KR
+                </div>
+                <div class="flex flex-wrap items-center gap-2.5">
+                    <button id="rerollBtn" onclick="game.rerollDraft()" class="skill-btn px-3.5 py-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400 text-amber-300 font-orbitron text-xs font-bold transition flex items-center gap-2">
+                        <i class="fa-solid fa-dice"></i> Przelosuj (<span id="rerollCostText">20</span> KR)
+                    </button>
+                    <button id="buyManaBtn" onclick="game.buyFullMana()" class="skill-btn px-3.5 py-2 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400 text-cyan-300 font-orbitron text-xs font-bold transition flex items-center gap-2">
+                        <i class="fa-solid fa-bolt"></i> Pełny RAM (<span id="buyManaCostText">20</span> KR)
+                    </button>
+                    <button id="buyHpBtn" onclick="game.buyRepairHp()" class="skill-btn px-3.5 py-2 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 border border-rose-400 text-rose-300 font-orbitron text-xs font-bold transition flex items-center gap-2">
+                        <i class="fa-solid fa-heart-pulse"></i> Naprawa +1 HP (<span id="buyHpCostText">35</span> KR)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- START / GAME OVER MODAL -->
+    <div id="startModal" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="max-w-lg w-full cyber-panel rounded-2xl p-6 md:p-8 text-center border-2 border-emerald-400/50 relative overflow-hidden">
+            <div class="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-400 flex items-center justify-center mx-auto mb-4 text-emerald-400 text-3xl shadow-[0_0_25px_rgba(16,185,129,0.4)]">
+                <i class="fa-solid fa-user-ninja"></i>
+            </div>
+            <h1 id="modalMainTitle" class="font-orbitron font-black text-2xl md:text-4xl text-white tracking-wider uppercase neon-text-cyan mb-2">
+                GHOST RUNNER GRID
+            </h1>
+            <div id="modalSubBadge" class="inline-block px-3 py-0.5 rounded bg-emerald-600/30 border border-emerald-400 text-emerald-300 font-orbitron text-xs font-bold mb-4">
+                PAC-MAN CYBER-STEALTH ROGUELIKE
+            </div>
+
+            <p id="modalDescription" class="text-slate-300 text-sm md:text-base mb-6 leading-relaxed">
+                Infiltruj strzeżone serwerownie, unikaj <strong>stożków wzroku Strażników AI</strong> i bramek laserowych. Zaczynasz bez umiejętności — odblokuj <strong>do 4 modułów hakerskich</strong> (Kamuflaż, Fazowy Skok, Wabik, Przejęcie Ducha) i pokonaj <strong>6 Bossów AI</strong>!
+            </p>
+
+            <!-- Game Over Stats Summary -->
+            <div id="gameOverStats" class="hidden grid grid-cols-3 gap-2 bg-slate-900/90 p-3 rounded-xl border border-slate-800 mb-6">
+                <div>
+                    <div class="text-[10px] text-slate-400 uppercase">SEKTOR</div>
+                    <div id="finalStageStat" class="font-orbitron font-bold text-lg text-emerald-400">1</div>
+                </div>
+                <div>
+                    <div class="text-[10px] text-slate-400 uppercase">WYNIK</div>
+                    <div id="finalScoreStat" class="font-orbitron font-bold text-lg text-white">0</div>
+                </div>
+                <div>
+                    <div class="text-[10px] text-slate-400 uppercase">POŻARTE AI</div>
+                    <div id="finalGhostsStat" class="font-orbitron font-bold text-lg text-cyan-400">0</div>
+                </div>
+            </div>
+
+            <button onclick="game.startNewRun()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-orbitron font-black text-base tracking-wider uppercase shadow-[0_0_25px_rgba(16,185,129,0.5)] transition transform hover:scale-[1.02]">
+                <i class="fa-solid fa-terminal mr-2"></i> ROZPOCZNIJ INFILTRACJĘ
+            </button>
+        </div>
+    </div>
+
+    <!-- HELP MODAL -->
+    <div id="helpModal" class="hidden fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="max-w-2xl w-full cyber-panel rounded-2xl p-6 border border-cyan-500/50 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3 mb-4">
+                <h3 class="font-orbitron font-bold text-lg text-cyan-400 flex items-center gap-2">
+                    <i class="fa-solid fa-user-secret"></i> INSTRUKCJA INFILTRACJI (STEALTH & HEIST)
+                </h3>
+                <button onclick="document.getElementById('helpModal').classList.add('hidden')" class="text-slate-400 hover:text-white text-xl">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="space-y-4 text-sm text-slate-300">
+                <div>
+                    <h4 class="font-orbitron font-bold text-emerald-400 text-xs uppercase mb-1">1. Skradanie, Stożki Wzroku i Alarm</h4>
+                    <p>Strażnicy AI patrolują korytarze i posiadają <strong>Stożki Wzroku</strong>. Jeśli wejdziesz w ich linię wzroku bez Kamuflażu, włączy się <strong>ALARM POŚCIGOWY</strong> — Strażnicy przyspieszą i zaczną Cię aktywnie ścigać! Zbieranie dużych kul <strong>Overclock (⚡)</strong> pozwala przez chwilę pożerać Strażników.</p>
+                </div>
+                <div>
+                    <h4 class="font-orbitron font-bold text-cyan-400 text-xs uppercase mb-1">2. Moduły Hakerskie (Sloty 1-4)</h4>
+                    <p>Zaczynasz bez umiejętności aktywnych. Po każdym sektorze możesz wybrać nowy moduł z puli 8 umiejętności (<em>Kamuflaż Optyczny, Fazowy Skok przez ściany, Wabik Holograficzny, Impuls EMP, Overclock Bojowy, Mina Stazowa, Wirus Hakujący Strażnika, Magnes Danych</em>) lub ulepszyć go do Poziomu 3.</p>
+                </div>
+                <div>
+                    <h4 class="font-orbitron font-bold text-pink-400 text-xs uppercase mb-1">3. Sześciu Bossów AI (Co 3 Sektory)</h4>
+                    <ul class="list-disc list-inside text-xs text-slate-400 mt-1 space-y-1">
+                        <li><strong class="text-pink-400">Cerberus AI:</strong> Wypuszcza szybkie drony pościgowe i włącza globalny namierzacz.</li>
+                        <li><strong class="text-orange-400">Architekt Firewalla:</strong> Stawia płonące zapory blokujące korytarze.</li>
+                        <li><strong class="text-purple-400">Widmo Blackoutu:</strong> Gasi światło w serwerowni, ograniczając widoczność do małego kręgu wokół Ciebie!</li>
+                        <li><strong class="text-cyan-400">Nadzorca Panopticon:</strong> Namierza Cię wiązką snajperską i przyspiesza strażników.</li>
+                        <li><strong class="text-emerald-400">Królowa Roju:</strong> Rozrzuca toksyczne bio-miny spowalniające w korytarzach.</li>
+                        <li><strong class="text-amber-400">Omega Warden:</strong> Zakłóca sterowanie (odwraca kierunki) i wysysa pamięć RAM.</li>
+                    </ul>
+                </div>
+            </div>
+            <button onclick="document.getElementById('helpModal').classList.add('hidden')" class="mt-6 w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-orbitron text-xs font-bold">
+                ZAMKNIJ OKNO
+            </button>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * SYSTEM DŹWIĘKOWY (Web Audio API)
+         */
+        class SoundSystem {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) this.ctx = new AudioCtx();
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+            toggle() {
+                this.enabled = !this.enabled;
+                const iconClass = this.enabled ? 'fa-solid fa-volume-high' : 'fa-solid fa-volume-xmark text-slate-500';
+                document.getElementById('soundIconDesktop').className = iconClass;
+                document.getElementById('soundIconMobile').className = iconClass;
+            }
+            playTone(freq, type = 'sine', duration = 0.08, vol = 0.1, slideFreq = null) {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                if (slideFreq) {
+                    osc.frequency.exponentialRampToValueAtTime(slideFreq, this.ctx.currentTime + duration);
+                }
+                gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + duration);
+            }
+            pellet(alt = false) { this.playTone(alt ? 520 : 440, 'triangle', 0.04, 0.05); }
+            vault() { this.playTone(580, 'sine', 0.14, 0.12, 880); }
+            overclock() { this.playTone(300, 'sawtooth', 0.25, 0.14, 720); }
+            eatGhost() { this.playTone(240, 'square', 0.22, 0.16, 820); }
+            alert() { this.playTone(620, 'sawtooth', 0.18, 0.12, 320); }
+            hurt() { this.playTone(160, 'sawtooth', 0.35, 0.2, 45); }
+            skill() { this.playTone(460, 'sine', 0.2, 0.14, 920); }
+            stageClear() {
+                [440, 554, 659, 880].forEach((f, idx) => {
+                    setTimeout(() => this.playTone(f, 'triangle', 0.2, 0.14), idx * 85);
+                });
+            }
+        }
+
+        const sfx = new SoundSystem();
+
+        /**
+         * SZABLONY LABIRYNTÓW 19x19
+         * # = Ściana, . = Dane, o = Overclock, V = Skarbiec, L = Bramka Laserowa, G = Dom Strażników, P = Start Gracza, ' ' = Pusto
+         */
+        const MAZE_TEMPLATES = [
+            [
+                "###################",
+                "#o....#.....#....o#",
+                "#.###.#.###.#.###.#",
+                "#.V......L......V.#",
+                "#.###.#.###.#.###.#",
+                "#.....#.....#.....#",
+                "#####.### ###.#####",
+                "####...........####",
+                "####.##     ##.####",
+                "....... GGG .......",
+                "####.##     ##.####",
+                "####...........####",
+                "#####.#.###.#.#####",
+                "#........P........#",
+                "#.###.###.###.###.#",
+                "#o..#....L....#..o#",
+                "###.#.#.#####.#.###",
+                "#V...............V#",
+                "###################"
+            ],
+            [
+                "###################",
+                "#o..#....V....#..o#",
+                "#.#.#.#######.#.#.#",
+                "#.#......L......#.#",
+                "#.###.###.###.###.#",
+                "#.................#",
+                "####.### # ###.####",
+                "####...........####",
+                "####.##     ##.####",
+                "...L... GGG ...L...",
+                "####.##     ##.####",
+                "####...........####",
+                "####.### # ###.####",
+                "#........P........#",
+                "#.####.#####.####.#",
+                "#o...............o#",
+                "####.#.#####.#.####",
+                "#V.......#.......V#",
+                "###################"
+            ],
+            [
+                "###################",
+                "#V...#.......#...V#",
+                "#.###.#.#####.#.###",
+                "#o....L.......L..o#",
+                "#.###.###.###.###.#",
+                "#.................#",
+                "###.#.### ###.#.###",
+                "###.#.........#.###",
+                "###.#.##   ##.#.###",
+                ".....   GGG   .....",
+                "###.#.##   ##.#.###",
+                "###.#.........#.###",
+                "###.#.###.###.#.###",
+                "#........P........#",
+                "#.###.###.###.###.#",
+                "#o..#....L....#..o#",
+                "###.#.#######.#.###",
+                "#V...............V#",
+                "###################"
+            ]
+        ];
+
+        /**
+         * KATALOG 8 UMIEJĘTNOŚCI HAKERSKICH (Gracz zaczyna z 0 i odblokowuje do 4 w slotach 1-4)
+         */
+        const SKILL_CATALOG = {
+            cloak: {
+                id: 'cloak',
+                name: 'Kamuflaż Optyczny',
+                icon: 'fa-eye-slash',
+                color: 'text-emerald-400',
+                bgBox: 'bg-emerald-500/10 border-emerald-500/40',
+                baseCost: 28,
+                baseCd: 11000,
+                maxLevel: 3,
+                getDesc: (lvl) => `Niewidzialność, brak Alarmu i przenikanie przez Strażników na ${(2.5 + lvl * 1.3).toFixed(1)}s`,
+                execute: (g, lvl) => {
+                    g.cloakTimer = (2.5 + lvl * 1.3) * 1000;
+                    g.alertTimer = 0;
+                    g.showFloatingText('👻 KAMUFLAŻ AKTYWNY!', '#10b981');
+                    g.updateStatusBadges();
+                }
+            },
+            phase_dash: {
+                id: 'phase_dash',
+                name: 'Fazowy Skok',
+                icon: 'fa-bolt-lightning',
+                color: 'text-cyan-400',
+                bgBox: 'bg-cyan-500/10 border-cyan-500/40',
+                baseCost: 25,
+                baseCd: 7500,
+                maxLevel: 3,
+                getDesc: (lvl) => `Teleport o ${lvl + 2} pola przez ściany i ogłuszenie pobliskich AI na ${lvl + 1}s`,
+                execute: (g, lvl) => {
+                    const maxDist = lvl + 2;
+                    const dx = g.player.dirX || g.player.lastDirX || 1;
+                    const dy = g.player.dirY || g.player.lastDirY || 0;
+                    let bestX = Math.round(g.player.x);
+                    let bestY = Math.round(g.player.y);
+
+                    for (let step = maxDist; step >= 1; step--) {
+                        let tx = (bestX + dx * step + g.gridSize) % g.gridSize;
+                        let ty = Math.max(1, Math.min(g.gridSize - 2, bestY + dy * step));
+                        if (g.maze[ty][tx] !== '#') {
+                            bestX = tx;
+                            bestY = ty;
+                            break;
+                        }
+                    }
+                    g.spawnParticles(g.player.x * g.tileSize + 14, g.player.y * g.tileSize + 14, '#00f3ff', 16);
+                    g.player.x = bestX;
+                    g.player.y = bestY;
+                    g.spawnParticles(bestX * g.tileSize + 14, bestY * g.tileSize + 14, '#00f3ff', 18);
+                    g.collectAtTile(bestX, bestY);
+
+                    // Ogłuszenie pobliskich Strażników
+                    g.guards.forEach(ghost => {
+                        if (Math.hypot(ghost.x - bestX, ghost.y - bestY) <= 3.5) {
+                            ghost.stunTimer = (lvl + 1) * 1000;
+                        }
+                    });
+                    g.showFloatingText('⚡ FAZOWY SKOK!', '#00f3ff');
+                }
+            },
+            decoy: {
+                id: 'decoy',
+                name: 'Wabik Holo',
+                icon: 'fa-street-view',
+                color: 'text-pink-400',
+                bgBox: 'bg-pink-500/10 border-pink-500/40',
+                baseCost: 32,
+                baseCd: 13000,
+                maxLevel: 3,
+                getDesc: (lvl) => `Tworzy hologram ściągający Strażników, po 3s wybucha i ogłusza ich na ${2 + lvl * 1.5}s`,
+                execute: (g, lvl) => {
+                    g.activeDecoy = {
+                        x: Math.round(g.player.x),
+                        y: Math.round(g.player.y),
+                        timer: 3200,
+                        stunDuration: (2 + lvl * 1.5) * 1000,
+                        level: lvl
+                    };
+                    g.alertTimer = 0;
+                    g.showFloatingText('📡 HOLO-WABIK ROZSTAWIONY!', '#ff007f');
+                }
+            },
+            emp_blast: {
+                id: 'emp_blast',
+                name: 'Impuls EMP',
+                icon: 'fa-tower-broadcast',
+                color: 'text-blue-400',
+                bgBox: 'bg-blue-500/10 border-blue-500/40',
+                baseCost: 38,
+                baseCd: 14000,
+                maxLevel: 3,
+                getDesc: (lvl) => `Zamraża wszystkie AI, wyłącza Lasery i чиści pułapki Bossa na ${2.5 + lvl * 1.5}s`,
+                execute: (g, lvl) => {
+                    const dur = (2.5 + lvl * 1.5) * 1000;
+                    g.guards.forEach(ghost => {
+                        ghost.stunTimer = Math.max(ghost.stunTimer, dur);
+                        g.spawnParticles(ghost.x * g.tileSize + 14, ghost.y * g.tileSize + 14, '#38bdf8', 10);
+                    });
+                    g.empGateDisableTimer = dur;
+                    g.blackoutTimer = 0;
+                    g.reverseTimer = 0;
+                    g.hazards = [];
+                    g.triggerBoardShake();
+                    g.showFloatingText(`❄️ IMPULS EMP (${(dur/1000).toFixed(1)}s)!`, '#38bdf8');
+                    g.updateStatusBadges();
+                }
+            },
+            overclock: {
+                id: 'overclock',
+                name: 'Bojowy Overclock',
+                icon: 'fa-skull',
+                color: 'text-amber-400',
+                bgBox: 'bg-amber-500/10 border-amber-500/40',
+                baseCost: 44,
+                baseCd: 16000,
+                maxLevel: 3,
+                getDesc: (lvl) => `Włącza tryb pożerania Strażników AI na ${3.5 + lvl * 1.5}s oraz przyspiesza ruch`,
+                execute: (g, lvl) => {
+                    g.activateOverclock((3.5 + lvl * 1.5) * 1000);
+                    g.showFloatingText('🔥 BOJOWY OVERCLOCK!', '#fbbf24');
+                }
+            },
+            trap: {
+                id: 'trap',
+                name: 'Mina Stazowa',
+                icon: 'fa-burst',
+                color: 'text-orange-400',
+                bgBox: 'bg-orange-500/10 border-orange-500/40',
+                baseCost: 24,
+                baseCd: 9000,
+                maxLevel: 3,
+                getDesc: (lvl) => `Stawia minę: gdy Strażnik w nią wejdzie, zostaje zrestartowany i daje +${lvl * 10} KR`,
+                execute: (g, lvl) => {
+                    g.playerTraps.push({
+                        x: Math.round(g.player.x),
+                        y: Math.round(g.player.y),
+                        goldReward: lvl * 10
+                    });
+                    g.showFloatingText('💣 MINA STAZOWA UZBROJONA!', '#fb923c');
+                }
+            },
+            hack_ghost: {
+                id: 'hack_ghost',
+                name: 'Wirus Przejęcia',
+                icon: 'fa-bug',
+                color: 'text-purple-400',
+                bgBox: 'bg-purple-500/10 border-purple-500/40',
+                baseCost: 36,
+                baseCd: 14000,
+                maxLevel: 3,
+                getDesc: (lvl) => `Hakuje najbliższego Strażnika na ${5 + lvl * 2.5}s — zbiera dla Ciebie Dane na mapie!`,
+                execute: (g, lvl) => {
+                    let closest = null;
+                    let minDist = 999;
+                    g.guards.forEach(ghost => {
+                        if (!ghost.isBoss) {
+                            const d = Math.hypot(ghost.x - g.player.x, ghost.y - g.player.y);
+                            if (d < minDist) {
+                                minDist = d;
+                                closest = ghost;
+                            }
+                        }
+                    });
+                    if (closest) {
+                        closest.hackedTimer = (5 + lvl * 2.5) * 1000;
+                        closest.stunTimer = 0;
+                        g.spawnParticles(closest.x * g.tileSize + 14, closest.y * g.tileSize + 14, '#c084fc', 16);
+                        g.showFloatingText('👾 STRAŻNIK ZHAKOWANY!', '#c084fc');
+                    }
+                }
+            },
+            magnet_pulse: {
+                id: 'magnet_pulse',
+                name: 'Magnes Danych',
+                icon: 'fa-magnet',
+                color: 'text-teal-400',
+                bgBox: 'bg-teal-500/10 border-teal-500/40',
+                baseCost: 30,
+                baseCd: 11000,
+                maxLevel: 3,
+                getDesc: (lvl) => `Wysysa wszystkie Dane i Skarbce w promieniu ${lvl + 2} pól przez ściany!`,
+                execute: (g, lvl) => {
+                    const radius = lvl + 2;
+                    const px = Math.round(g.player.x);
+                    const py = Math.round(g.player.y);
+                    let collected = 0;
+                    for (let y = Math.max(0, py - radius); y <= Math.min(g.gridSize - 1, py + radius); y++) {
+                        for (let x = Math.max(0, px - radius); x <= Math.min(g.gridSize - 1, px + radius); x++) {
+                            if (Math.hypot(x - px, y - py) <= radius) {
+                                if (g.maze[y][x] === '.' || g.maze[y][x] === 'V' || g.maze[y][x] === 'o') {
+                                    g.collectAtTile(x, y);
+                                    collected++;
+                                }
+                            }
+                        }
+                    }
+                    g.speedBoostTimer = 3500;
+                    g.showFloatingText(`🧲 MAGNES (+${collected} PAKIETÓW)!`, '#2dd4bf');
+                    g.updateStatusBadges();
+                }
+            }
+        };
+
+        /**
+         * PULA 15 PASYWNYCH IMPLANTÓW (RELIKTÓW)
+         */
+        const RELIC_POOL = [
+            {
+                id: 'servo_legs',
+                name: 'Hydrauliczne Serwa',
+                icon: 'fa-gauge-high',
+                color: 'text-cyan-400',
+                maxStacks: 3,
+                desc: 'Zwiększa prędkość poruszania się Biegacza o +12% na stałe.',
+                apply: (g) => { g.mods.playerSpeedMult += 0.12; }
+            },
+            {
+                id: 'ram_siphon',
+                name: 'Syfon Pamięci RAM',
+                icon: 'fa-bolt',
+                color: 'text-emerald-400',
+                maxStacks: 4,
+                desc: 'Każdy zebrany pakiet Danych daje +35% więcej energii RAM, a Maks. RAM rośnie o +20.',
+                apply: (g) => { g.mods.manaGainMult += 0.35; g.maxMana += 20; g.addMana(20); }
+            },
+            {
+                id: 'overclock_battery',
+                name: 'Ogniwo Overclocku',
+                icon: 'fa-battery-full',
+                color: 'text-amber-400',
+                maxStacks: 3,
+                desc: 'Wydłuża czas działania kul Overclock (⚡) o +2.0 sekundy i daje +150 PKT za pożarcie AI.',
+                apply: (g) => { g.mods.overclockBonusMs += 2000; g.mods.ghostEatBonusScore += 150; }
+            },
+            {
+                id: 'stealth_coating',
+                name: 'Powłoka Metamateriału',
+                icon: 'fa-user-ninja',
+                color: 'text-teal-400',
+                maxStacks: 3,
+                desc: 'Skraca zasięg wzroku wszystkich Strażników o 1.5 pola i przyspiesza wygasanie Alarmu.',
+                apply: (g) => { g.mods.guardVisionReduction += 1.5; }
+            },
+            {
+                id: 'pickpocket',
+                name: 'Cyber-Kieszonkowiec',
+                icon: 'fa-hand-holding-dollar',
+                color: 'text-yellow-400',
+                maxStacks: 3,
+                desc: 'Pożarcie lub ogłuszenie Strażnika daje dodatkowe +8 Kredytów i +12 RAM. Daje +12 KR teraz.',
+                apply: (g) => { g.mods.ghostKillGold += 8; g.gold += 12; }
+            },
+            {
+                id: 'laser_bypass',
+                name: 'Dekoder Laserowy',
+                icon: 'fa-shield-halved',
+                color: 'text-rose-400',
+                maxStacks: 1,
+                desc: 'Pozwala bezpiecznie przenikać przez aktywne czerwone Bramki Laserowe bez utraty HP!',
+                apply: (g) => { g.mods.laserImmune = true; }
+            },
+            {
+                id: 'emergency_cloak',
+                name: 'Awaryjny Protokół Widmo',
+                icon: 'fa-ghost',
+                color: 'text-purple-400',
+                maxStacks: 2,
+                desc: 'Na początku każdego sektora zyskujesz Tarczę Widmo, która blokuje 1 trafienie i włącza Kamuflaż!',
+                apply: (g) => { g.mods.sectorShields += 1; g.shields += 1; }
+            },
+            {
+                id: 'cooldown_chip',
+                name: 'Koprocesor Taktowania',
+                icon: 'fa-microchip',
+                color: 'text-blue-400',
+                maxStacks: 3,
+                desc: 'Skraca czas odnowienia wszystkich umiejętności o 15% i zmniejsza ich koszt RAM o 12%.',
+                apply: (g) => { g.mods.cooldownMult *= 0.85; g.mods.skillCostMult *= 0.88; }
+            },
+            {
+                id: 'score_overdrive',
+                name: 'Mnożnik Eksfiltracji',
+                icon: 'fa-chart-line',
+                color: 'text-pink-400',
+                maxStacks: 4,
+                desc: 'Zwiększa wszystkie zdobywane punkty o +25% i daje +5 Kredytów za każdy ukończony sektor.',
+                apply: (g) => { g.mods.scoreMult += 0.25; g.mods.sectorBonusGold += 5; }
+            },
+            {
+                id: 'hull_upgrade',
+                name: 'Pancerz Subdermalny',
+                icon: 'fa-heart-circle-plus',
+                color: 'text-rose-400',
+                maxStacks: 2,
+                desc: 'Zwiększa Maksymalną Integralność (HP) o +1 i natychmiast przywraca 1 utracony punkt HP.',
+                apply: (g) => { g.maxHp += 1; g.hp = Math.min(g.maxHp, g.hp + 1); }
+            },
+            {
+                id: 'passive_ram',
+                name: 'Generator Próżniowy',
+                icon: 'fa-charging-station',
+                color: 'text-cyan-300',
+                maxStacks: 3,
+                desc: 'Pasywnie odnawia +2.2 pamięci RAM na sekundę podczas infiltracji.',
+                apply: (g) => { g.mods.manaRegenPerSec += 2.2; }
+            },
+            {
+                id: 'chill_aura',
+                name: 'Krio-Emiter',
+                icon: 'fa-snowflake',
+                color: 'text-sky-300',
+                maxStacks: 3,
+                desc: 'Strażnicy AI poruszają się o 10% wolniej na całej mapie.',
+                apply: (g) => { g.mods.guardSpeedMult *= 0.90; }
+            }
+        ];
+
+        /**
+         * GŁÓWNA KLASA GRY: PAC-MAN HEIST ROGUELIKE
+         */
+        class CyberHeistGame {
+            constructor() {
+                this.gridSize = 19;
+                this.tileSize = 28; // 19 * 28 = 532px
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+
+                this.particles = [];
+                this.resetState();
+                this.bindEvents();
+                this.lastTime = 0;
+                requestAnimationFrame((t) => this.loop(t));
+            }
+
+            resetState() {
+                this.stage = 1;
+                this.score = 0;
+                this.gold = 15;
+                this.ghostsEatenTotal = 0;
+
+                this.hp = 3;
+                this.maxHp = 3;
+                this.shields = 0;
+
+                this.mana = 25;
+                this.maxMana = 100;
+                this.manaRegenBuffer = 0;
+
+                // Ceny w sklepie
+                this.rerollCost = 18;
+                this.buyManaCost = 20;
+                this.buyHpCost = 35;
+
+                // Gracz zaczyna bez umiejętności (4 puste sloty)
+                this.unlockedSkills = [];
+
+                this.mods = {
+                    playerSpeedMult: 1.0,
+                    guardSpeedMult: 1.0,
+                    manaGainMult: 1.0,
+                    manaRegenPerSec: 0,
+                    overclockBonusMs: 0,
+                    ghostEatBonusScore: 0,
+                    guardVisionReduction: 0,
+                    ghostKillGold: 5,
+                    laserImmune: false,
+                    sectorShields: 0,
+                    cooldownMult: 1.0,
+                    skillCostMult: 1.0,
+                    scoreMult: 1.0,
+                    sectorBonusGold: 0
+                };
+
+                this.relics = [];
+                this.relicCounts = {};
+
+                this.maze = [];
+                this.totalDataNodes = 0;
+                this.collectedDataNodes = 0;
+
+                this.player = {
+                    x: 9, y: 13,
+                    dirX: 0, dirY: 0,
+                    nextDirX: 0, nextDirY: 0,
+                    lastDirX: 1, lastDirY: 0,
+                    mouthAngle: 0.2,
+                    mouthSpeed: 1
+                };
+
+                this.guards = [];
+                this.playerTraps = [];
+                this.hazards = []; // Ściany ogniowe lub bio-miny Bossa
+                this.activeDecoy = null;
+
+                // Timery stanów
+                this.overclockTimer = 0;
+                this.cloakTimer = 0;
+                this.alertTimer = 0;
+                this.invulnTimer = 0;
+                this.empGateDisableTimer = 0;
+                this.speedBoostTimer = 0;
+                this.laserCycleTimer = 0;
+                this.lasersActive = true;
+
+                // Boss
+                this.isBossStage = false;
+                this.bossType = null;
+                this.bossAttackTimer = 0;
+                this.bossAttackInterval = 8000;
+                this.blackoutTimer = 0;
+                this.reverseTimer = 0;
+
+                this.pelletSoundToggle = false;
+                this.state = 'MENU'; // MENU, PLAYING, DRAFT, PAUSED, GAMEOVER
+                this.renderSkillSlots();
+            }
+
+            startNewRun() {
+                sfx.init();
+                this.resetState();
+                document.getElementById('startModal').classList.add('hidden');
+                document.getElementById('pauseOverlay').classList.add('hidden');
+                this.renderRelicsInventory();
+                this.renderSkillSlots();
+                this.setupStage(1);
+                this.state = 'PLAYING';
+                this.lastTime = performance.now();
+                this.updateUI();
+            }
+
+            togglePause() {
+                if (this.state === 'PLAYING') {
+                    this.state = 'PAUSED';
+                    document.getElementById('pauseOverlay').classList.remove('hidden');
+                    document.getElementById('pauseIcon').className = 'fa-solid fa-play';
+                } else if (this.state === 'PAUSED') {
+                    this.state = 'PLAYING';
+                    document.getElementById('pauseOverlay').classList.add('hidden');
+                    document.getElementById('pauseIcon').className = 'fa-solid fa-pause';
+                    this.lastTime = performance.now();
+                }
+                this.updateUI();
+            }
+
+            setupStage(stageNum) {
+                this.stage = stageNum;
+                this.shields = this.mods.sectorShields;
+                this.overclockTimer = 0;
+                this.cloakTimer = 0;
+                this.alertTimer = 0;
+                this.invulnTimer = 1500;
+                this.empGateDisableTimer = 0;
+                this.speedBoostTimer = 0;
+                this.blackoutTimer = 0;
+                this.reverseTimer = 0;
+                this.playerTraps = [];
+                this.hazards = [];
+                this.activeDecoy = null;
+
+                // Wybór szablonu mapy
+                const tpl = MAZE_TEMPLATES[(stageNum - 1) % MAZE_TEMPLATES.length];
+                this.maze = [];
+                this.totalDataNodes = 0;
+                this.collectedDataNodes = 0;
+
+                const ghostSpawns = [];
+
+                for (let y = 0; y < this.gridSize; y++) {
+                    const row = [];
+                    for (let x = 0; x < this.gridSize; x++) {
+                        const ch = tpl[y][x] || ' ';
+                        if (ch === 'P') {
+                            this.player.x = x;
+                            this.player.y = y;
+                            this.player.dirX = 0;
+                            this.player.dirY = 0;
+                            this.player.nextDirX = 0;
+                            this.player.nextDirY = 0;
+                            row.push(' ');
+                        } else if (ch === 'G') {
+                            ghostSpawns.push({ x, y });
+                            row.push(' ');
+                        } else {
+                            row.push(ch);
+                        }
+                    }
+                    this.maze.push(row);
+                }
+
+                // Gwarancja osiągalności (BFS z pozycji startowej gracza) — usuwa ewentualne odcięte punkty i zlicza tylko dostępne
+                const visited = Array.from({ length: this.gridSize }, () => Array(this.gridSize).fill(false));
+                const queue = [{ x: Math.round(this.player.x), y: Math.round(this.player.y) }];
+                visited[queue[0].y][queue[0].x] = true;
+                while (queue.length > 0) {
+                    const cur = queue.shift();
+                    const dirs = [{ dx: 1, dy: 0 }, { dx: -1, dy: 0 }, { dx: 0, dy: 1 }, { dx: 0, dy: -1 }];
+                    for (let d of dirs) {
+                        const nx = (cur.x + d.dx + this.gridSize) % this.gridSize;
+                        const ny = cur.y + d.dy;
+                        if (ny >= 0 && ny < this.gridSize && !visited[ny][nx] && this.maze[ny][nx] !== '#') {
+                            visited[ny][nx] = true;
+                            queue.push({ x: nx, y: ny });
+                        }
+                    }
+                }
+                for (let y = 0; y < this.gridSize; y++) {
+                    for (let x = 0; x < this.gridSize; x++) {
+                        const ch = this.maze[y][x];
+                        if (ch === '.' || ch === 'o' || ch === 'V') {
+                            if (visited[y][x]) {
+                                this.totalDataNodes++;
+                            } else {
+                                this.maze[y][x] = ' ';
+                            }
+                        }
+                    }
+                }
+
+                // Co 3 sektor to Boss AI
+                this.isBossStage = (stageNum % 3 === 0);
+                const topPanel = document.getElementById('topStatusPanel');
+                const bossTag = document.getElementById('bossTag');
+                const bossTimerContainer = document.getElementById('bossTimerContainer');
+
+                if (this.isBossStage) {
+                    const bosses = [
+                        { id: 'cerberus', name: 'CERBERUS AI', subtitle: 'Co 8s włącza globalny Alarm i przyspiesza pościg!', interval: 8000, color: '#ff007f' },
+                        { id: 'firewall', name: 'ARCHITEKT FIREWALLA', subtitle: 'Co 7.5s stawia płonące bariery ogniowe na korytarzach!', interval: 7500, color: '#f97316' },
+                        { id: 'blackout', name: 'WIDMO BLACKOUTU', subtitle: 'Co 8s gasi światło w serwerowni, ograniczając pole widzenia!', interval: 8000, color: '#a855f7' },
+                        { id: 'panopticon', name: 'NADZORCA PANOPTICON', subtitle: 'Co 7s namierza Twoją pozycję i teleportuje Strażnika bliżej!', interval: 7000, color: '#00f3ff' },
+                        { id: 'hive', name: 'KRÓLOWA ROJU', subtitle: 'Co 7s rozrzuca toksyczne bio-miny w korytarzach!', interval: 7000, color: '#10b981' },
+                        { id: 'omega', name: 'OMEGA WARDEN', subtitle: 'Co 8s odwraca sterowanie na 3.5s i wysysa pamięć RAM!', interval: 8000, color: '#eab308' }
+                    ];
+                    this.bossType = bosses[Math.floor((stageNum / 3 - 1) % bosses.length)];
+                    this.bossAttackInterval = this.bossType.interval;
+                    this.bossAttackTimer = this.bossAttackInterval;
+
+                    document.getElementById('stageTitle').textContent = `BOSS: ${this.bossType.name}`;
+                    document.getElementById('stageSubtitle').textContent = this.bossType.subtitle;
+                    topPanel.classList.add('cyber-panel-pink', 'boss-active-border');
+                    bossTag.classList.remove('hidden');
+                    bossTimerContainer.classList.remove('hidden');
+                } else {
+                    this.bossType = null;
+                    document.getElementById('stageTitle').textContent = `SEKTOR ${stageNum}: SERWEROWNIA`;
+                    document.getElementById('stageSubtitle').textContent = 'Wykradnij 100% pakietów Danych, unikając wykrycia przez Strażników AI';
+                    topPanel.classList.remove('cyber-panel-pink', 'boss-active-border');
+                    bossTag.classList.add('hidden');
+                    bossTimerContainer.classList.add('hidden');
+                }
+
+                // Tworzenie Strażników AI
+                this.spawnGuards(ghostSpawns);
+                this.updateStatusBadges();
+                this.updateUI();
+            }
+
+            spawnGuards(spawns) {
+                this.guards = [];
+                const archetypes = [
+                    { type: 'CHASER', name: 'Łowca', color: '#ef4444' },
+                    { type: 'AMBUSHER', name: 'Zasadzkowiec', color: '#ec4899' },
+                    { type: 'PATROL', name: 'Skaner', color: '#38bdf8' },
+                    { type: 'STALKER', name: 'Egzekutor', color: '#f59e0b' }
+                ];
+
+                const count = this.stage === 1 ? 3 : (this.stage >= 5 ? 5 : 4);
+                const baseSpeed = (3.4 + Math.min(1.6, (this.stage - 1) * 0.16)) * this.mods.guardSpeedMult;
+
+                for (let i = 0; i < count; i++) {
+                    const arch = archetypes[i % archetypes.length];
+                    const sp = spawns[i % spawns.length] || { x: 9, y: 9 };
+                    this.guards.push({
+                        x: sp.x,
+                        y: sp.y,
+                        gridX: sp.x,
+                        gridY: sp.y,
+                        targetX: sp.x,
+                        targetY: sp.y,
+                        moveProgress: 1.0,
+                        spawnX: sp.x,
+                        spawnY: sp.y,
+                        dirX: i % 2 === 0 ? 1 : -1,
+                        dirY: 0,
+                        speed: baseSpeed * (arch.type === 'STALKER' ? 1.06 : 1.0),
+                        type: arch.type,
+                        name: arch.name,
+                        color: arch.color,
+                        isBoss: this.isBossStage && i === 0,
+                        stunTimer: 0,
+                        hackedTimer: 0
+                    });
+                }
+            }
+
+            setDesiredDir(dx, dy) {
+                if (this.state !== 'PLAYING') return;
+                if (this.reverseTimer > 0) {
+                    dx = -dx;
+                    dy = -dy;
+                }
+                this.player.nextDirX = dx;
+                this.player.nextDirY = dy;
+            }
+
+            canMoveToTile(tx, ty, isGhost = false) {
+                const wrappedX = (tx + this.gridSize) % this.gridSize;
+                if (ty < 0 || ty >= this.gridSize) return false;
+                const cell = this.maze[ty][wrappedX];
+                if (cell === '#') return false;
+                return true;
+            }
+
+            collectAtTile(tx, ty) {
+                const cell = this.maze[ty]?.[tx];
+                if (!cell) return;
+
+                if (cell === '.') {
+                    this.maze[ty][tx] = ' ';
+                    this.collectedDataNodes++;
+                    this.pelletSoundToggle = !this.pelletSoundToggle;
+                    sfx.pellet(this.pelletSoundToggle);
+
+                    const pts = Math.round(25 * (1 + (this.stage - 1) * 0.1) * this.mods.scoreMult);
+                    this.score += pts;
+                    this.addMana(1.6 * this.mods.manaGainMult);
+                    this.checkSectorComplete();
+                } else if (cell === 'V') {
+                    this.maze[ty][tx] = ' ';
+                    this.collectedDataNodes++;
+                    sfx.vault();
+                    const kr = 6 + Math.floor(this.stage / 2);
+                    const pts = Math.round(150 * this.mods.scoreMult);
+                    this.gold += kr;
+                    this.score += pts;
+                    this.addMana(12 * this.mods.manaGainMult);
+                    this.spawnParticles(tx * this.tileSize + 14, ty * this.tileSize + 14, '#facc15', 14);
+                    this.showFloatingText(`💎 SKARBIEC +${kr} KR`, '#facc15');
+                    this.checkSectorComplete();
+                } else if (cell === 'o') {
+                    this.maze[ty][tx] = ' ';
+                    this.collectedDataNodes++;
+                    this.activateOverclock(5500 + this.mods.overclockBonusMs);
+                    const pts = Math.round(80 * this.mods.scoreMult);
+                    this.score += pts;
+                    this.addMana(10 * this.mods.manaGainMult);
+                    this.spawnParticles(tx * this.tileSize + 14, ty * this.tileSize + 14, '#f59e0b', 16);
+                    this.showFloatingText('⚡ OVERCLOCK: POŻERAJ AI!', '#fbbf24');
+                    this.checkSectorComplete();
+                }
+            }
+
+            activateOverclock(durationMs) {
+                sfx.overclock();
+                this.overclockTimer = Math.max(this.overclockTimer, durationMs);
+                this.alertTimer = 0;
+                this.updateStatusBadges();
+            }
+
+            checkSectorComplete() {
+                if (this.collectedDataNodes >= this.totalDataNodes && this.state === 'PLAYING') {
+                    this.completeStage();
+                }
+                this.updateUI();
+            }
+
+            /**
+             * SPRAWDZANIE LINII WZROKU STRAŻNIKÓW (STEALTH MECHANIC)
+             */
+            checkStealthDetection(dt) {
+                if (this.cloakTimer > 0 || this.overclockTimer > 0) return;
+
+                const px = Math.round(this.player.x);
+                const py = Math.round(this.player.y);
+                const maxVision = Math.max(2.5, 5.5 - this.mods.guardVisionReduction);
+
+                let spotted = false;
+                for (let g of this.guards) {
+                    if (g.stunTimer > 0 || g.hackedTimer > 0) continue;
+                    const gx = Math.round(g.x);
+                    const gy = Math.round(g.y);
+
+                    // Sprawdź czy gracz jest w tym samym korytarzu przed strażnikiem
+                    if (gx === px && Math.sign(py - gy) === g.dirY && g.dirY !== 0) {
+                        const dist = Math.abs(py - gy);
+                        if (dist <= maxVision && this.hasClearCorridor(gx, gy, px, py)) {
+                            spotted = true;
+                            break;
+                        }
+                    } else if (gy === py && Math.sign(px - gx) === g.dirX && g.dirX !== 0) {
+                        const dist = Math.abs(px - gx);
+                        if (dist <= maxVision && this.hasClearCorridor(gx, gy, px, py)) {
+                            spotted = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (spotted) {
+                    if (this.alertTimer <= 0) {
+                        sfx.alert();
+                        this.showFloatingText('🚨 WYKRYTO! ALARM POŚCIGOWY!', '#f43f5e');
+                    }
+                    this.alertTimer = 4500;
+                    this.updateStatusBadges();
+                }
+            }
+
+            hasClearCorridor(x1, y1, x2, y2) {
+                const dx = Math.sign(x2 - x1);
+                const dy = Math.sign(y2 - y1);
+                let cx = x1;
+                let cy = y1;
+                while (cx !== x2 || cy !== y2) {
+                    cx += dx;
+                    cy += dy;
+                    if (this.maze[cy]?.[cx] === '#') return false;
+                }
+                return true;
+            }
+
+            /**
+             * RUCH GRACZA Z PŁYNNYM WCHODZENIEM W ZAKRĘTY
+             */
+            updatePlayer(dt) {
+                const p = this.player;
+                let baseSpeed = 5.6 * this.mods.playerSpeedMult;
+                if (this.speedBoostTimer > 0) baseSpeed *= 1.3;
+                if (this.overclockTimer > 0) baseSpeed *= 1.12;
+
+                const step = (baseSpeed * dt) / 1000;
+
+                // Próba zmiany kierunku TYLKO gdy żądany kierunek różni się od aktualnego!
+                const wantsNewDir = (p.nextDirX !== 0 || p.nextDirY !== 0) && (p.nextDirX !== p.dirX || p.nextDirY !== p.dirY);
+                if (wantsNewDir) {
+                    const isOpposite = (p.nextDirX === -p.dirX && p.nextDirY === -p.dirY) && (p.dirX !== 0 || p.dirY !== 0);
+                    if (isOpposite) {
+                        // Natychmiastowy zwrot o 180 stopni w korytarzu
+                        p.dirX = p.nextDirX;
+                        p.dirY = p.nextDirY;
+                        p.lastDirX = p.dirX;
+                        p.lastDirY = p.dirY;
+                    } else {
+                        // Zakręt o 90 stopni lub start z miejsca (z dużą tolerancją narożników 0.42 pola)
+                        const cx = Math.round(p.x);
+                        const cy = Math.round(p.y);
+                        const nearCenter = Math.abs(p.x - cx) <= 0.42 && Math.abs(p.y - cy) <= 0.42;
+                        if (nearCenter && this.canMoveToTile(cx + p.nextDirX, cy + p.nextDirY, false)) {
+                            p.x = cx;
+                            p.y = cy;
+                            p.dirX = p.nextDirX;
+                            p.dirY = p.nextDirY;
+                            p.lastDirX = p.dirX;
+                            p.lastDirY = p.dirY;
+                        }
+                    }
+                }
+
+                // Ruch naprzód w aktualnym kierunku
+                if (p.dirX !== 0 || p.dirY !== 0) {
+                    const curX = Math.round(p.x);
+                    const curY = Math.round(p.y);
+                    const wallAhead = !this.canMoveToTile(curX + p.dirX, curY + p.dirY, false);
+
+                    p.x += p.dirX * step;
+                    p.y += p.dirY * step;
+
+                    // Wyrównanie osi prostopadłej do środka korytarza
+                    if (p.dirX !== 0) p.y = curY;
+                    if (p.dirY !== 0) p.x = curX;
+
+                    // Jeśli przed tym kafelkiem jest ściana, nie pozwól przekroczyć środka kafelka
+                    if (wallAhead) {
+                        const passedCenterX = (p.x - curX) * p.dirX > 0;
+                        const passedCenterY = (p.y - curY) * p.dirY > 0;
+                        if (passedCenterX || passedCenterY) {
+                            p.x = curX;
+                            p.y = curY;
+                            p.dirX = 0;
+                            p.dirY = 0;
+                        }
+                    }
+
+                    // Przejście przez boczny tunel
+                    p.x = (p.x + this.gridSize) % this.gridSize;
+
+                    if (p.dirX !== 0 || p.dirY !== 0) {
+                        p.mouthAngle += 0.015 * p.mouthSpeed * dt;
+                        if (p.mouthAngle > 0.38) { p.mouthAngle = 0.38; p.mouthSpeed = -1; }
+                        if (p.mouthAngle < 0.04) { p.mouthAngle = 0.04; p.mouthSpeed = 1; }
+                    }
+                }
+
+                const curTileX = Math.round(p.x) % this.gridSize;
+                const curTileY = Math.round(p.y);
+                this.collectAtTile(curTileX, curTileY);
+
+                // Sprawdzenie aktywnych bramek laserowych
+                if (this.maze[curTileY]?.[curTileX] === 'L' && this.lasersActive && this.empGateDisableTimer <= 0) {
+                    if (!this.mods.laserImmune && this.cloakTimer <= 0 && this.invulnTimer <= 0) {
+                        this.damagePlayer('⚡ PORAŻENIE BRAMKĄ LASEROWĄ!');
+                    }
+                }
+
+                // Sprawdzenie zagrożeń Bossa (ściany ogniowe / bio-miny)
+                for (let i = this.hazards.length - 1; i >= 0; i--) {
+                    const h = this.hazards[i];
+                    if (Math.hypot(p.x - h.x, p.y - h.y) < 0.55) {
+                        if (this.cloakTimer <= 0 && this.invulnTimer <= 0) {
+                            this.hazards.splice(i, 1);
+                            this.damagePlayer('🔥 PUŁAPKA BOSSA!');
+                            break;
+                        }
+                    }
+                }
+            }
+
+            /**
+             * SZTUCZNA INTELIGENCJA STRAŻNIKÓW (PŁYNNY RUCH MIĘDZY WĘZŁAMI SIATKI)
+             */
+            updateGuards(dt) {
+                for (let g of this.guards) {
+                    if (g.stunTimer > 0) {
+                        g.stunTimer = Math.max(0, g.stunTimer - dt);
+                        continue;
+                    }
+
+                    let spd = g.speed;
+                    if (g.hackedTimer > 0) {
+                        g.hackedTimer = Math.max(0, g.hackedTimer - dt);
+                        spd *= 1.25;
+                    } else if (this.overclockTimer > 0) {
+                        spd *= 0.65;
+                    } else if (this.alertTimer > 0) {
+                        spd *= 1.18;
+                    }
+
+                    g.moveProgress += (spd * dt) / 1000;
+
+                    while (g.moveProgress >= 1.0) {
+                        g.moveProgress -= 1.0;
+                        g.gridX = (g.targetX + this.gridSize) % this.gridSize;
+                        g.gridY = g.targetY;
+
+                        if (g.hackedTimer > 0) {
+                            this.collectAtTile(g.gridX, g.gridY);
+                        }
+
+                        const dirs = [
+                            { dx: 1, dy: 0 },
+                            { dx: -1, dy: 0 },
+                            { dx: 0, dy: 1 },
+                            { dx: 0, dy: -1 }
+                        ];
+                        let validDirs = dirs.filter(d =>
+                            !(d.dx === -g.dirX && d.dy === -g.dirY) &&
+                            this.canMoveToTile(g.gridX + d.dx, g.gridY + d.dy, true)
+                        );
+                        if (validDirs.length === 0) {
+                            validDirs = dirs.filter(d => this.canMoveToTile(g.gridX + d.dx, g.gridY + d.dy, true));
+                        }
+
+                        if (validDirs.length > 0) {
+                            let targetX = this.player.x;
+                            let targetY = this.player.y;
+
+                            if (this.activeDecoy) {
+                                targetX = this.activeDecoy.x;
+                                targetY = this.activeDecoy.y;
+                            } else if (g.hackedTimer > 0) {
+                                targetX = Math.floor(Math.random() * this.gridSize);
+                                targetY = Math.floor(Math.random() * this.gridSize);
+                            } else if (this.overclockTimer > 0) {
+                                targetX = this.gridSize - this.player.x;
+                                targetY = this.gridSize - this.player.y;
+                            } else if (g.type === 'AMBUSHER') {
+                                targetX = this.player.x + this.player.lastDirX * 4;
+                                targetY = this.player.y + this.player.lastDirY * 4;
+                            } else if (g.type === 'PATROL' && this.alertTimer <= 0) {
+                                targetX = (g.gridX < 9) ? 16 : 2;
+                                targetY = (g.gridY < 9) ? 16 : 2;
+                            }
+
+                            if (this.cloakTimer > 0 && !this.activeDecoy) {
+                                const rnd = validDirs[Math.floor(Math.random() * validDirs.length)];
+                                g.dirX = rnd.dx;
+                                g.dirY = rnd.dy;
+                            } else {
+                                validDirs.sort((a, b) => {
+                                    const distA = Math.hypot((g.gridX + a.dx) - targetX, (g.gridY + a.dy) - targetY);
+                                    const distB = Math.hypot((g.gridX + b.dx) - targetX, (g.gridY + b.dy) - targetY);
+                                    return distA - distB;
+                                });
+                                const chosen = (this.alertTimer <= 0 && Math.random() < 0.22 && validDirs.length > 1)
+                                    ? validDirs[1]
+                                    : validDirs[0];
+                                g.dirX = chosen.dx;
+                                g.dirY = chosen.dy;
+                            }
+
+                            g.targetX = g.gridX + g.dirX;
+                            g.targetY = g.gridY + g.dirY;
+                        } else {
+                            g.targetX = g.gridX;
+                            g.targetY = g.gridY;
+                            break;
+                        }
+                    }
+
+                    // Płynna interpolacja pozycji Strażnika
+                    g.x = (g.gridX + (g.targetX - g.gridX) * g.moveProgress + this.gridSize) % this.gridSize;
+                    g.y = g.gridY + (g.targetY - g.gridY) * g.moveProgress;
+
+                    // Sprawdzenie Min Stazowych gracza
+                    for (let tIdx = this.playerTraps.length - 1; tIdx >= 0; tIdx--) {
+                        const trap = this.playerTraps[tIdx];
+                        if (Math.hypot(g.x - trap.x, g.y - trap.y) < 0.6) {
+                            this.playerTraps.splice(tIdx, 1);
+                            this.rebootGuard(g, trap.goldReward);
+                            break;
+                        }
+                    }
+
+                    // Kolizja Strażnika z Graczem
+                    if (Math.hypot(g.x - this.player.x, g.y - this.player.y) < 0.62) {
+                        if (g.hackedTimer > 0) {
+                            continue;
+                        } else if (this.overclockTimer > 0) {
+                            this.rebootGuard(g, this.mods.ghostKillGold);
+                        } else if (this.cloakTimer <= 0 && this.invulnTimer <= 0) {
+                            this.damagePlayer(`💀 ZŁAPANY PRZEZ: ${g.name.toUpperCase()}!`);
+                        }
+                    }
+                }
+            }
+
+            rebootGuard(guard, extraGold = 0) {
+                sfx.eatGhost();
+                this.ghostsEatenTotal++;
+                this.spawnParticles(guard.x * this.tileSize + 14, guard.y * this.tileSize + 14, guard.color, 22);
+
+                const pts = Math.round((250 + this.mods.ghostEatBonusScore) * this.mods.scoreMult);
+                this.score += pts;
+                this.gold += extraGold;
+                this.addMana(15);
+
+                guard.x = guard.spawnX;
+                guard.y = guard.spawnY;
+                guard.gridX = guard.spawnX;
+                guard.gridY = guard.spawnY;
+                guard.targetX = guard.spawnX;
+                guard.targetY = guard.spawnY;
+                guard.moveProgress = 1.0;
+                guard.stunTimer = 2800;
+                this.showFloatingText(`👾 AI ZRESTARTOWANE +${pts} PKT!`, '#00f3ff');
+                this.updateUI();
+            }
+
+            damagePlayer(reasonText) {
+                if (this.shields > 0) {
+                    this.shields--;
+                    this.cloakTimer = 2800;
+                    this.invulnTimer = 2800;
+                    sfx.skill();
+                    this.triggerBoardShake();
+                    this.showFloatingText('🛡️ TARCZA WIDMO ZABLOKOWAŁA OBRAŻENIA!', '#c084fc');
+                    this.updateStatusBadges();
+                    this.updateUI();
+                    return;
+                }
+
+                sfx.hurt();
+                this.hp--;
+                this.invulnTimer = 2500;
+                this.alertTimer = 0;
+                this.triggerBoardShake();
+                this.spawnParticles(this.player.x * this.tileSize + 14, this.player.y * this.tileSize + 14, '#f43f5e', 24);
+                this.showFloatingText(reasonText, '#f43f5e');
+
+                if (this.hp <= 0) {
+                    this.triggerGameOver();
+                } else {
+                    // Bezpieczny powrót na pozycję startową
+                    this.player.x = 9;
+                    this.player.y = 13;
+                    this.player.dirX = 0;
+                    this.player.dirY = 0;
+                    this.player.nextDirX = 0;
+                    this.player.nextDirY = 0;
+                }
+                this.updateUI();
+            }
+
+            /**
+             * ATAKI 6 BOSSÓW AI
+             */
+            triggerBossAttack() {
+                if (!this.isBossStage || !this.bossType) return;
+                sfx.alert();
+                this.triggerBoardShake();
+
+                if (this.bossType.id === 'cerberus') {
+                    this.alertTimer = 5000;
+                    this.showFloatingText('⚠️ CERBERUS: GLOBALNY ALARM POŚCIGOWY!', '#ff007f');
+                } else if (this.bossType.id === 'firewall') {
+                    // Tworzy 4 płonące zapory w losowych wolnych korytarzach
+                    for (let i = 0; i < 4; i++) {
+                        const rx = 2 + Math.floor(Math.random() * (this.gridSize - 4));
+                        const ry = 2 + Math.floor(Math.random() * (this.gridSize - 4));
+                        if (this.maze[ry][rx] !== '#' && Math.hypot(rx - this.player.x, ry - this.player.y) > 2.5) {
+                            this.hazards.push({ x: rx, y: ry, timer: 6500, type: 'FIRE' });
+                        }
+                    }
+                    this.showFloatingText('🔥 FIREWALL: ZAPORY OGNIOWE!', '#f97316');
+                } else if (this.bossType.id === 'blackout') {
+                    this.blackoutTimer = 5500;
+                    this.showFloatingText('🌑 BLACKOUT: AWARIA OŚWIETLENIA (5.5s)!', '#a855f7');
+                } else if (this.bossType.id === 'panopticon') {
+                    this.alertTimer = 3500;
+                    // Przyspiesza strażników na chwilę
+                    this.guards.forEach(g => { g.stunTimer = 0; });
+                    this.showFloatingText('👁️ PANOPTICON: SKANOWANIE SEKTORA!', '#00f3ff');
+                } else if (this.bossType.id === 'hive') {
+                    this.guards.forEach(g => {
+                        this.hazards.push({ x: Math.round(g.x), y: Math.round(g.y), timer: 7000, type: 'BIO' });
+                    });
+                    this.showFloatingText('☣️ KRÓLOWA ROJU: BIO-MINY!', '#10b981');
+                } else if (this.bossType.id === 'omega') {
+                    this.reverseTimer = 3500;
+                    this.addMana(-15);
+                    this.showFloatingText('⇄ OMEGA: ODWRÓCONE STEROWANIE (3.5s)!', '#eab308');
+                }
+                this.updateStatusBadges();
+            }
+
+            /**
+             * UMIEJĘTNOŚCI AKTYWNE I EKRAN DRAFTU
+             */
+            addMana(amount) {
+                this.mana = Math.min(this.maxMana, Math.max(0, this.mana + amount));
+                this.updateUI();
+            }
+
+            getSkillCost(def, level) {
+                const base = Math.max(14, def.baseCost - (level - 1) * 3);
+                return Math.max(10, Math.round(base * this.mods.skillCostMult));
+            }
+
+            getSkillCooldown(def, level) {
+                const base = Math.max(3500, def.baseCd - (level - 1) * 1000);
+                return Math.round(base * this.mods.cooldownMult);
+            }
+
+            useSkill(slotNumber) {
+                if (this.state !== 'PLAYING') return;
+                const slotObj = this.unlockedSkills[slotNumber - 1];
+                if (!slotObj) {
+                    this.showFloatingText(`SLOT [${slotNumber}] JEST PUSTY!`, '#64748b');
+                    return;
+                }
+                if (slotObj.cooldown > 0) {
+                    this.showFloatingText('MODUŁ SIĘ ODNAWIA!', '#fbbf24');
+                    return;
+                }
+                const def = SKILL_CATALOG[slotObj.id];
+                const cost = this.getSkillCost(def, slotObj.level);
+                if (this.mana < cost) {
+                    this.showFloatingText('BRAK PAMIĘCI RAM!', '#f43f5e');
+                    return;
+                }
+
+                this.mana -= cost;
+                slotObj.cooldown = this.getSkillCooldown(def, slotObj.level);
+                sfx.skill();
+                def.execute(this, slotObj.level);
+                this.updateUI();
+            }
+
+            renderSkillSlots() {
+                const container = document.getElementById('skillsContainer');
+                if (!container) return;
+                container.innerHTML = '';
+                document.getElementById('skillSlotsCountBadge').textContent = `${this.unlockedSkills.length} / 4`;
+
+                for (let i = 0; i < 4; i++) {
+                    const slotNum = i + 1;
+                    const slotObj = this.unlockedSkills[i];
+
+                    if (!slotObj) {
+                        const emptyEl = document.createElement('div');
+                        emptyEl.className = 'w-full bg-slate-950/60 border border-dashed border-slate-800 rounded-lg p-2.5 flex items-center justify-between opacity-65';
+                        emptyEl.innerHTML = `
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-600 font-bold text-sm shrink-0">
+                                    <i class="fa-solid fa-lock"></i>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-[10px] font-orbitron px-1.5 py-0.2 bg-slate-900 text-slate-500 rounded border border-slate-800">[${slotNum}]</span>
+                                        <span class="font-bold text-xs text-slate-500 font-orbitron">PUSTY SLOT</span>
+                                    </div>
+                                    <div class="text-[10px] text-slate-600 leading-tight">Odblokuj na Czarnym Rynku po sektorze</div>
+                                </div>
+                            </div>
+                        `;
+                        container.appendChild(emptyEl);
+                    } else {
+                        const def = SKILL_CATALOG[slotObj.id];
+                        const cost = this.getSkillCost(def, slotObj.level);
+                        const btn = document.createElement('button');
+                        btn.id = `skillBtn${slotNum}`;
+                        btn.onclick = () => this.useSkill(slotNum);
+                        btn.className = 'skill-btn w-full text-left bg-slate-900/90 border border-slate-700/80 rounded-lg p-2.5 flex items-center justify-between group';
+                        btn.innerHTML = `
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-9 h-9 rounded-lg ${def.bgBox} border flex items-center justify-center ${def.color} font-bold text-base shrink-0">
+                                    <i class="fa-solid ${def.icon}"></i>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-[10px] font-orbitron px-1.5 py-0.2 bg-slate-800 text-cyan-300 rounded border border-slate-600">[${slotNum}]</span>
+                                        <span class="font-bold text-sm text-white group-hover:text-cyan-300 transition">${def.name}</span>
+                                        <span class="text-[9px] font-orbitron px-1 py-0.1 bg-cyan-500/20 text-cyan-300 rounded border border-cyan-500/30">Poz.${slotObj.level}</span>
+                                    </div>
+                                    <div class="text-[11px] text-slate-400 leading-tight">${def.getDesc(slotObj.level)}</div>
+                                </div>
+                            </div>
+                            <div class="text-right shrink-0 ml-1">
+                                <span class="font-orbitron font-bold text-xs text-cyan-400 block" id="skillCost${slotNum}">${cost} RAM</span>
+                                <span id="skillCd${slotNum}" class="hidden text-[10px] text-amber-400 font-orbitron font-bold"></span>
+                            </div>
+                        `;
+                        container.appendChild(btn);
+                    }
+                }
+            }
+
+            completeStage() {
+                this.state = 'DRAFT';
+                sfx.stageClear();
+
+                const bonusGold = (this.isBossStage ? 30 : 15) + this.mods.sectorBonusGold;
+                this.gold += bonusGold;
+                this.rerollCost = 18;
+
+                this.generateDraftCards();
+                this.updateDraftShopUI();
+                document.getElementById('draftModal').classList.remove('hidden');
+            }
+
+            updateDraftShopUI() {
+                document.getElementById('draftGoldDisplay').textContent = this.gold;
+                document.getElementById('rerollCostText').textContent = this.rerollCost;
+                document.getElementById('buyManaCostText').textContent = this.buyManaCost;
+                document.getElementById('buyHpCostText').textContent = this.buyHpCost;
+
+                document.getElementById('rerollBtn').disabled = (this.gold < this.rerollCost);
+                document.getElementById('buyManaBtn').disabled = (this.gold < this.buyManaCost || this.mana >= this.maxMana);
+                document.getElementById('buyHpBtn').disabled = (this.gold < this.buyHpCost || this.hp >= this.maxHp);
+            }
+
+            buildCandidateCards() {
+                const skillCards = [];
+                const ownedIds = this.unlockedSkills.map(s => s.id);
+
+                if (this.unlockedSkills.length < 4) {
+                    Object.values(SKILL_CATALOG).forEach(def => {
+                        if (!ownedIds.includes(def.id)) {
+                            skillCards.push({
+                                id: `new_${def.id}`,
+                                name: def.name,
+                                icon: def.icon,
+                                color: def.color,
+                                badgeText: `NOWY MODUŁ [SLOT ${this.unlockedSkills.length + 1}]`,
+                                badgeClass: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+                                desc: `${def.getDesc(1)}. Koszt: ${this.getSkillCost(def, 1)} RAM, Odnowienie: ${(this.getSkillCooldown(def, 1)/1000).toFixed(1)}s.`,
+                                apply: (g) => {
+                                    g.unlockedSkills.push({ id: def.id, level: 1, cooldown: 0 });
+                                    g.renderSkillSlots();
+                                }
+                            });
+                        }
+                    });
+                }
+
+                this.unlockedSkills.forEach((slotObj, idx) => {
+                    const def = SKILL_CATALOG[slotObj.id];
+                    if (slotObj.level < def.maxLevel) {
+                        const nextLvl = slotObj.level + 1;
+                        skillCards.push({
+                            id: `upg_${def.id}`,
+                            name: `${def.name} (Poz. ${nextLvl})`,
+                            icon: def.icon,
+                            color: def.color,
+                            badgeText: `ULEPSZENIE SLOTU [${idx + 1}]`,
+                            badgeClass: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40',
+                            desc: `Wzmacnia moduł do Poz. ${nextLvl}: ${def.getDesc(nextLvl)} oraz obniża koszt i odnowienie.`,
+                            apply: (g) => {
+                                slotObj.level = nextLvl;
+                                g.renderSkillSlots();
+                            }
+                        });
+                    }
+                });
+
+                const relicCards = RELIC_POOL
+                    .filter(r => (this.relicCounts[r.id] || 0) < (r.maxStacks || 99))
+                    .map(r => {
+                        const cur = this.relicCounts[r.id] || 0;
+                        return {
+                            id: r.id,
+                            name: r.name,
+                            icon: r.icon,
+                            color: r.color,
+                            badgeText: `IMPLANT PASYWNY (${cur + 1}/${r.maxStacks})`,
+                            badgeClass: 'bg-purple-500/20 text-purple-300 border-purple-500/40',
+                            desc: r.desc,
+                            apply: (g) => {
+                                r.apply(g);
+                                g.relicCounts[r.id] = (g.relicCounts[r.id] || 0) + 1;
+                                if (!g.relics.find(x => x.id === r.id)) {
+                                    g.relics.push(r);
+                                }
+                                g.renderRelicsInventory();
+                                g.renderSkillSlots();
+                            }
+                        };
+                    });
+
+                return { skillCards, relicCards };
+            }
+
+            generateDraftCards() {
+                const container = document.getElementById('draftCardsContainer');
+                container.innerHTML = '';
+
+                const { skillCards, relicCards } = this.buildCandidateCards();
+                const shuffledSkills = [...skillCards].sort(() => 0.5 - Math.random());
+                const shuffledRelics = [...relicCards].sort(() => 0.5 - Math.random());
+
+                const choices = [];
+                if (this.unlockedSkills.length === 0 && shuffledSkills.length >= 2) {
+                    choices.push(shuffledSkills.pop(), shuffledSkills.pop());
+                } else if (shuffledSkills.length > 0) {
+                    choices.push(shuffledSkills.pop());
+                }
+
+                const remaining = [...shuffledSkills, ...shuffledRelics].sort(() => 0.5 - Math.random());
+                while (choices.length < 3 && remaining.length > 0) {
+                    choices.push(remaining.pop());
+                }
+
+                this.currentDraftChoices = choices;
+
+                this.currentDraftChoices.forEach((cardData, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'card-choice cyber-panel rounded-xl p-5 flex flex-col justify-between cursor-pointer border border-slate-700 hover:border-cyan-400 bg-slate-900/90';
+                    card.onclick = () => this.selectDraftCard(index);
+                    card.innerHTML = `
+                        <div>
+                            <div class="flex items-start justify-between gap-2 mb-4">
+                                <div class="w-12 h-12 rounded-xl bg-slate-800 border border-slate-600 flex items-center justify-center ${cardData.color} text-2xl shadow-md shrink-0">
+                                    <i class="fa-solid ${cardData.icon}"></i>
+                                </div>
+                                <span class="text-[10px] font-orbitron px-2 py-0.5 rounded border font-bold text-right ${cardData.badgeClass}">
+                                    ${cardData.badgeText}
+                                </span>
+                            </div>
+                            <h3 class="font-orbitron font-bold text-base text-white mb-2">${cardData.name}</h3>
+                            <p class="text-xs text-slate-300 leading-relaxed">${cardData.desc}</p>
+                        </div>
+                        <div class="mt-5 pt-3 border-t border-slate-800 flex items-center justify-between text-xs font-orbitron text-cyan-400 font-bold">
+                            <span>ZAINSTALUJ</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            }
+
+            selectDraftCard(index) {
+                const chosen = this.currentDraftChoices[index];
+                if (!chosen) return;
+                chosen.apply(this);
+
+                document.getElementById('draftModal').classList.add('hidden');
+                this.setupStage(this.stage + 1);
+                this.state = 'PLAYING';
+                this.lastTime = performance.now();
+                this.updateUI();
+            }
+
+            rerollDraft() {
+                if (this.gold < this.rerollCost) return;
+                this.gold -= this.rerollCost;
+                this.rerollCost += 10;
+                sfx.vault();
+                this.generateDraftCards();
+                this.updateDraftShopUI();
+                this.updateUI();
+            }
+
+            buyFullMana() {
+                if (this.gold < this.buyManaCost || this.mana >= this.maxMana) return;
+                this.gold -= this.buyManaCost;
+                this.buyManaCost += 8;
+                this.mana = this.maxMana;
+                sfx.skill();
+                this.updateDraftShopUI();
+                this.updateUI();
+            }
+
+            buyRepairHp() {
+                if (this.gold < this.buyHpCost || this.hp >= this.maxHp) return;
+                this.gold -= this.buyHpCost;
+                this.buyHpCost += 15;
+                this.hp = Math.min(this.maxHp, this.hp + 1);
+                sfx.skill();
+                this.updateDraftShopUI();
+                this.updateUI();
+            }
+
+            renderRelicsInventory() {
+                const list = document.getElementById('relicsList');
+                const totalCount = Object.values(this.relicCounts).reduce((a, b) => a + b, 0);
+                document.getElementById('relicCountBadge').textContent = totalCount;
+                list.innerHTML = '';
+
+                if (this.relics.length === 0) {
+                    list.innerHTML = `
+                        <div class="text-xs text-slate-500 italic text-center py-8">
+                            Wykradnij wszystkie dane w 1. sektorze, aby zainstalować swój pierwszy moduł lub implant.
+                        </div>
+                    `;
+                    return;
+                }
+
+                this.relics.forEach(r => {
+                    const count = this.relicCounts[r.id] || 1;
+                    const item = document.createElement('div');
+                    item.className = 'bg-slate-900/90 border border-slate-800 rounded-lg p-2 flex items-start gap-2.5';
+                    item.innerHTML = `
+                        <div class="w-7 h-7 rounded bg-slate-800 flex items-center justify-center ${r.color} shrink-0 text-sm mt-0.5">
+                            <i class="fa-solid ${r.icon}"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between">
+                                <div class="font-bold text-xs text-white leading-tight">${r.name}</div>
+                                ${count > 1 ? `<span class="text-[10px] font-orbitron px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold">x${count}</span>` : ''}
+                            </div>
+                            <div class="text-[10px] text-slate-400 leading-tight mt-0.5">${r.desc}</div>
+                        </div>
+                    `;
+                    list.appendChild(item);
+                });
+            }
+
+            triggerGameOver() {
+                this.state = 'GAMEOVER';
+                sfx.hurt();
+                document.getElementById('modalMainTitle').textContent = 'POŁĄCZENIE ZERWANE';
+                document.getElementById('modalSubBadge').textContent = 'INFILTRACJA NIEUDANA (GAME OVER)';
+                document.getElementById('modalDescription').textContent = 'Strażnicy AI namierzyli i zneutralizowali Twój sygnał. Zresetuj protokół i spróbuj ponownie!';
+                document.getElementById('finalStageStat').textContent = this.stage;
+                document.getElementById('finalScoreStat').textContent = this.score.toLocaleString('pl-PL');
+                document.getElementById('finalGhostsStat').textContent = this.ghostsEatenTotal;
+                document.getElementById('gameOverStats').classList.remove('hidden');
+                document.getElementById('startModal').classList.remove('hidden');
+            }
+
+            /**
+             * EFEKTY WIZUALNE I UI
+             */
+            spawnParticles(x, y, color, count = 10) {
+                for (let i = 0; i < count; i++) {
+                    this.particles.push({
+                        x, y,
+                        vx: (Math.random() - 0.5) * 6,
+                        vy: (Math.random() - 0.5) * 6,
+                        size: Math.random() * 4 + 2,
+                        color,
+                        alpha: 1.0
+                    });
+                }
+            }
+
+            showFloatingText(text, color = '#00f3ff') {
+                const container = document.getElementById('floatingTextContainer');
+                const el = document.createElement('div');
+                el.className = 'font-orbitron font-extrabold text-xs md:text-sm tracking-wider uppercase absolute left-1/2 -translate-x-1/2 pointer-events-none transition-all duration-700 whitespace-nowrap drop-shadow-[0_2px_6px_rgba(0,0,0,0.95)]';
+                el.style.color = color;
+                el.style.top = '46%';
+                el.textContent = text;
+                container.appendChild(el);
+
+                requestAnimationFrame(() => {
+                    el.style.top = '22%';
+                    el.style.opacity = '0';
+                });
+                setTimeout(() => el.remove(), 750);
+            }
+
+            triggerBoardShake() {
+                const wrapper = document.getElementById('boardWrapper');
+                wrapper.classList.remove('shake');
+                void wrapper.offsetWidth;
+                wrapper.classList.add('shake');
+            }
+
+            updateStatusBadges() {
+                const container = document.getElementById('statusBadgesContainer');
+                const alertBadge = document.getElementById('alertBadge');
+                container.innerHTML = '';
+
+                if (this.alertTimer > 0) {
+                    alertBadge.textContent = 'ALARM POŚCIGOWY!';
+                    alertBadge.className = 'px-2 py-0.5 text-[10px] font-orbitron font-bold bg-rose-600 text-white rounded animate-pulse';
+                    container.innerHTML += `<span class="px-2.5 py-0.5 rounded-full bg-rose-950/90 border border-rose-500 text-rose-300 font-orbitron text-[10px] font-bold">🚨 ALARM ${(this.alertTimer/1000).toFixed(1)}s</span>`;
+                } else if (this.cloakTimer > 0) {
+                    alertBadge.textContent = 'NIEWIDZIALNOŚĆ';
+                    alertBadge.className = 'px-2 py-0.5 text-[10px] font-orbitron font-bold bg-cyan-950 text-cyan-300 border border-cyan-400 rounded';
+                } else {
+                    alertBadge.textContent = 'UKRYCIE';
+                    alertBadge.className = 'px-2 py-0.5 text-[10px] font-orbitron font-bold bg-emerald-950 text-emerald-400 border border-emerald-500/40 rounded';
+                }
+
+                if (this.shields > 0) {
+                    container.innerHTML += `<span class="px-2.5 py-0.5 rounded-full bg-purple-950/90 border border-purple-400 text-purple-300 font-orbitron text-[10px] font-bold">🛡️ TARCZA WIDMO x${this.shields}</span>`;
+                }
+                if (this.overclockTimer > 0) {
+                    container.innerHTML += `<span class="px-2.5 py-0.5 rounded-full bg-amber-950/90 border border-amber-400 text-amber-300 font-orbitron text-[10px] font-bold">⚡ OVERCLOCK ${(this.overclockTimer/1000).toFixed(1)}s</span>`;
+                }
+                if (this.cloakTimer > 0) {
+                    container.innerHTML += `<span class="px-2.5 py-0.5 rounded-full bg-emerald-950/90 border border-emerald-400 text-emerald-300 font-orbitron text-[10px] font-bold">👻 KAMUFLAŻ ${(this.cloakTimer/1000).toFixed(1)}s</span>`;
+                }
+                if (this.blackoutTimer > 0) {
+                    container.innerHTML += `<span class="px-2.5 py-0.5 rounded-full bg-purple-950/90 border border-purple-400 text-purple-300 font-orbitron text-[10px] font-bold">🌑 BLACKOUT ${(this.blackoutTimer/1000).toFixed(1)}s</span>`;
+                }
+                if (this.reverseTimer > 0) {
+                    container.innerHTML += `<span class="px-2.5 py-0.5 rounded-full bg-yellow-950/90 border border-yellow-400 text-yellow-300 font-orbitron text-[10px] font-bold">⇄ ZAKŁÓCENIE ${(this.reverseTimer/1000).toFixed(1)}s</span>`;
+                }
+            }
+
+            updateUI() {
+                document.getElementById('stageBadge').textContent = this.stage;
+                document.getElementById('scoreDisplay').textContent = this.score.toLocaleString('pl-PL');
+                document.getElementById('goldDisplay').textContent = this.gold;
+
+                // Serca HP
+                const hpContainer = document.getElementById('hpDisplay');
+                hpContainer.innerHTML = '';
+                for (let i = 0; i < this.maxHp; i++) {
+                    hpContainer.innerHTML += `<i class="fa-solid fa-heart ${i < this.hp ? 'text-rose-500 drop-shadow-[0_0_5px_rgba(244,63,94,0.8)]' : 'text-slate-700'}"></i>`;
+                }
+
+                // Postęp pakietów danych
+                const pct = this.totalDataNodes > 0 ? Math.min(100, Math.floor((this.collectedDataNodes / this.totalDataNodes) * 100)) : 0;
+                document.getElementById('stageProgressBar').style.width = `${pct}%`;
+                document.getElementById('progressNumbers').textContent = `${this.collectedDataNodes} / ${this.totalDataNodes} DANYCH`;
+
+                // Pasek RAM (Mana)
+                const manaPct = Math.min(100, Math.floor((this.mana / this.maxMana) * 100));
+                document.getElementById('manaBar').style.width = `${manaPct}%`;
+                document.getElementById('manaText').textContent = `${Math.floor(this.mana)} / ${this.maxMana}`;
+
+                // Statystyki boczne
+                document.getElementById('statSpeed').textContent = `${Math.round(this.mods.playerSpeedMult * 100)}%`;
+                document.getElementById('statOverclock').textContent = `${((5500 + this.mods.overclockBonusMs) / 1000).toFixed(1)}s`;
+                document.getElementById('statMult').textContent = `${this.mods.scoreMult.toFixed(2)}x`;
+
+                // Sloty umiejętności
+                for (let i = 0; i < this.unlockedSkills.length; i++) {
+                    const slotNum = i + 1;
+                    const slotObj = this.unlockedSkills[i];
+                    const def = SKILL_CATALOG[slotObj.id];
+                    const cost = this.getSkillCost(def, slotObj.level);
+
+                    const btn = document.getElementById(`skillBtn${slotNum}`);
+                    const costEl = document.getElementById(`skillCost${slotNum}`);
+                    const cdEl = document.getElementById(`skillCd${slotNum}`);
+                    if (!btn || !costEl || !cdEl) continue;
+
+                    costEl.textContent = `${cost} RAM`;
+                    if (slotObj.cooldown > 0) {
+                        cdEl.textContent = `${(slotObj.cooldown / 1000).toFixed(1)}s`;
+                        cdEl.classList.remove('hidden');
+                    } else {
+                        cdEl.classList.add('hidden');
+                    }
+                    btn.disabled = (this.mana < cost || slotObj.cooldown > 0 || this.state !== 'PLAYING');
+                }
+            }
+
+            /**
+             * RYSOWANIE PLANSZY, STOŻKÓW WZROKU, STRAŻNIKÓW I GRACZA
+             */
+            draw() {
+                const ctx = this.ctx;
+                const ts = this.tileSize;
+                ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+                // 1. Rysowanie Labiryntu i Pakietów Danych
+                for (let y = 0; y < this.gridSize; y++) {
+                    for (let x = 0; x < this.gridSize; x++) {
+                        const cell = this.maze[y]?.[x];
+                        const px = x * ts;
+                        const py = y * ts;
+
+                        if (cell === '#') {
+                            ctx.fillStyle = '#0f172a';
+                            ctx.fillRect(px + 1, py + 1, ts - 2, ts - 2);
+                            ctx.strokeStyle = this.alertTimer > 0 ? 'rgba(244, 63, 94, 0.45)' : 'rgba(0, 243, 255, 0.25)';
+                            ctx.lineWidth = 1.2;
+                            ctx.strokeRect(px + 2, py + 2, ts - 4, ts - 4);
+                        } else if (cell === '.') {
+                            ctx.fillStyle = '#10b981';
+                            ctx.beginPath();
+                            ctx.arc(px + ts / 2, py + ts / 2, 3.2, 0, Math.PI * 2);
+                            ctx.fill();
+                        } else if (cell === 'o') {
+                            const pulse = 6 + Math.sin(performance.now() * 0.008) * 2;
+                            ctx.fillStyle = '#fbbf24';
+                            ctx.beginPath();
+                            ctx.arc(px + ts / 2, py + ts / 2, pulse, 0, Math.PI * 2);
+                            ctx.fill();
+                        } else if (cell === 'V') {
+                            ctx.fillStyle = '#facc15';
+                            ctx.font = 'bold 13px sans-serif';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText('💎', px + ts / 2, py + ts / 2 + 1);
+                        } else if (cell === 'L') {
+                            if (this.lasersActive && this.empGateDisableTimer <= 0) {
+                                ctx.strokeStyle = '#f43f5e';
+                                ctx.lineWidth = 3;
+                                ctx.beginPath();
+                                ctx.moveTo(px + 2, py + ts / 2);
+                                ctx.lineTo(px + ts - 2, py + ts / 2);
+                                ctx.stroke();
+                            } else {
+                                ctx.strokeStyle = 'rgba(100, 116, 139, 0.35)';
+                                ctx.setLineDash([3, 3]);
+                                ctx.beginPath();
+                                ctx.moveTo(px + 2, py + ts / 2);
+                                ctx.lineTo(px + ts - 2, py + ts / 2);
+                                ctx.stroke();
+                                ctx.setLineDash([]);
+                            }
+                        }
+                    }
+                }
+
+                // 2. Rysowanie Min Stazowych, Zagrożeń Bossa i Wabika
+                this.playerTraps.forEach(t => {
+                    ctx.fillStyle = '#fb923c';
+                    ctx.beginPath();
+                    ctx.arc(t.x * ts + ts / 2, t.y * ts + ts / 2, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+
+                this.hazards.forEach(h => {
+                    ctx.fillStyle = h.type === 'FIRE' ? 'rgba(249, 115, 22, 0.75)' : 'rgba(16, 185, 129, 0.75)';
+                    ctx.fillRect(h.x * ts + 3, h.y * ts + 3, ts - 6, ts - 6);
+                });
+
+                if (this.activeDecoy) {
+                    const dx = this.activeDecoy.x * ts + ts / 2;
+                    const dy = this.activeDecoy.y * ts + ts / 2;
+                    ctx.strokeStyle = '#ff007f';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(dx, dy, 10 + Math.sin(performance.now() * 0.015) * 3, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
+                // 3. Rysowanie Stożków Wzroku Strażników (gdy nie ma Overclocku)
+                const maxVision = Math.max(2.5, 5.5 - this.mods.guardVisionReduction);
+                if (this.overclockTimer <= 0) {
+                    for (let g of this.guards) {
+                        if (g.stunTimer > 0 || g.hackedTimer > 0) continue;
+                        ctx.save();
+                        ctx.fillStyle = this.alertTimer > 0 ? 'rgba(244, 63, 94, 0.14)' : 'rgba(0, 243, 255, 0.09)';
+                        let tx = Math.round(g.x);
+                        let ty = Math.round(g.y);
+                        for (let step = 1; step <= maxVision; step++) {
+                            tx += g.dirX;
+                            ty += g.dirY;
+                            if (ty < 0 || ty >= this.gridSize || tx < 0 || tx >= this.gridSize) break;
+                            if (this.maze[ty]?.[tx] === '#') break;
+                            ctx.fillRect(tx * ts + 2, ty * ts + 2, ts - 4, ts - 4);
+                        }
+                        ctx.restore();
+                    }
+                }
+
+                // 4. Rysowanie Strażników AI
+                for (let g of this.guards) {
+                    const gx = g.x * ts + ts / 2;
+                    const gy = g.y * ts + ts / 2;
+                    const r = g.isBoss ? 12.5 : 10.5;
+
+                    ctx.save();
+                    let bodyColor = g.color;
+                    if (g.hackedTimer > 0) bodyColor = '#c084fc';
+                    else if (g.stunTimer > 0) bodyColor = '#38bdf8';
+                    else if (this.overclockTimer > 0) {
+                        bodyColor = (this.overclockTimer < 1500 && Math.floor(performance.now() / 150) % 2 === 0) ? '#f8fafc' : '#2563eb';
+                    }
+
+                    ctx.fillStyle = bodyColor;
+                    ctx.beginPath();
+                    ctx.arc(gx, gy - 2, r, Math.PI, 0, false);
+                    ctx.lineTo(gx + r, gy + r);
+                    ctx.lineTo(gx - r, gy + r);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // Oczy Strażnika
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.arc(gx - 4 + g.dirX * 2, gy - 3 + g.dirY * 2, 3, 0, Math.PI * 2);
+                    ctx.arc(gx + 4 + g.dirX * 2, gy - 3 + g.dirY * 2, 3, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#0f172a';
+                    ctx.beginPath();
+                    ctx.arc(gx - 4 + g.dirX * 3, gy - 3 + g.dirY * 3, 1.5, 0, Math.PI * 2);
+                    ctx.arc(gx + 4 + g.dirX * 3, gy - 3 + g.dirY * 3, 1.5, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+
+                // 5. Rysowanie Gracza (Ghost Runner)
+                if (this.player) {
+                    const px = this.player.x * ts + ts / 2;
+                    const py = this.player.y * ts + ts / 2;
+                    let angle = 0;
+                    if (this.player.lastDirX === 1) angle = 0;
+                    else if (this.player.lastDirX === -1) angle = Math.PI;
+                    else if (this.player.lastDirY === -1) angle = -Math.PI / 2;
+                    else if (this.player.lastDirY === 1) angle = Math.PI / 2;
+
+                    ctx.save();
+                    if (this.cloakTimer > 0 || (this.invulnTimer > 0 && Math.floor(performance.now() / 100) % 2 === 0)) {
+                        ctx.globalAlpha = 0.45;
+                    }
+                    ctx.fillStyle = this.overclockTimer > 0 ? '#fbbf24' : '#00f3ff';
+                    ctx.beginPath();
+                    ctx.arc(px, py, 11, angle + this.player.mouthAngle, angle + Math.PI * 2 - this.player.mouthAngle);
+                    ctx.lineTo(px, py);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.restore();
+                }
+
+                // 6. Cząsteczki
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    const pt = this.particles[i];
+                    pt.x += pt.vx;
+                    pt.y += pt.vy;
+                    pt.alpha -= 0.03;
+                    if (pt.alpha <= 0) {
+                        this.particles.splice(i, 1);
+                    } else {
+                        ctx.save();
+                        ctx.globalAlpha = pt.alpha;
+                        ctx.fillStyle = pt.color;
+                        ctx.fillRect(pt.x, pt.y, pt.size, pt.size);
+                        ctx.restore();
+                    }
+                }
+
+                // 7. Efekt Blackoutu Bossa (ograniczone pole widzenia wokół gracza)
+                if (this.blackoutTimer > 0 && this.player) {
+                    const px = this.player.x * ts + ts / 2;
+                    const py = this.player.y * ts + ts / 2;
+                    const grad = ctx.createRadialGradient(px, py, 45, px, py, 135);
+                    grad.addColorStop(0, 'rgba(5, 6, 11, 0)');
+                    grad.addColorStop(1, 'rgba(5, 6, 11, 0.96)');
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                }
+            }
+
+            /**
+             * GŁÓWNA PĘTLA GRY
+             */
+            loop(time = 0) {
+                const dt = Math.min(80, time - this.lastTime);
+                this.lastTime = time;
+
+                if (this.state === 'PLAYING') {
+                    let uiNeedsRefresh = false;
+
+                    // Pasywna regeneracja RAM
+                    if (this.mods.manaRegenPerSec > 0 && this.mana < this.maxMana) {
+                        this.mana = Math.min(this.maxMana, this.mana + (this.mods.manaRegenPerSec * dt) / 1000);
+                        uiNeedsRefresh = true;
+                    }
+
+                    // Cykl bramek laserowych (co 3.2s włącz/wyłącz)
+                    this.laserCycleTimer += dt;
+                    if (this.laserCycleTimer >= 3200) {
+                        this.laserCycleTimer = 0;
+                        this.lasersActive = !this.lasersActive;
+                    }
+
+                    // Odliczanie odnowienia umiejętności
+                    this.unlockedSkills.forEach(s => {
+                        if (s.cooldown > 0) {
+                            const prev = Math.ceil(s.cooldown / 100);
+                            s.cooldown = Math.max(0, s.cooldown - dt);
+                            if (Math.ceil(s.cooldown / 100) !== prev) uiNeedsRefresh = true;
+                        }
+                    });
+
+                    // Odliczanie timerów stanów
+                    const tick = (prop) => {
+                        if (this[prop] > 0) {
+                            const prev = Math.floor(this[prop] / 200);
+                            this[prop] = Math.max(0, this[prop] - dt);
+                            if (Math.floor(this[prop] / 200) !== prev || this[prop] <= 0) {
+                                this.updateStatusBadges();
+                                uiNeedsRefresh = true;
+                            }
+                        }
+                    };
+                    tick('overclockTimer');
+                    tick('cloakTimer');
+                    tick('alertTimer');
+                    tick('invulnTimer');
+                    tick('empGateDisableTimer');
+                    tick('speedBoostTimer');
+                    tick('blackoutTimer');
+                    tick('reverseTimer');
+
+                    // Wabik Holograficzny
+                    if (this.activeDecoy) {
+                        this.activeDecoy.timer -= dt;
+                        if (this.activeDecoy.timer <= 0) {
+                            const d = this.activeDecoy;
+                            this.spawnParticles(d.x * this.tileSize + 14, d.y * this.tileSize + 14, '#ff007f', 24);
+                            this.guards.forEach(g => {
+                                if (Math.hypot(g.x - d.x, g.y - d.y) <= 4.5) {
+                                    g.stunTimer = d.stunDuration;
+                                }
+                            });
+                            this.gold += d.level * 5;
+                            this.activeDecoy = null;
+                            sfx.eatGhost();
+                            this.showFloatingText('💥 DETONACJA HOLO-WABIKA!', '#ff007f');
+                            uiNeedsRefresh = true;
+                        }
+                    }
+
+                    // Zagrożenia Bossa
+                    for (let i = this.hazards.length - 1; i >= 0; i--) {
+                        this.hazards[i].timer -= dt;
+                        if (this.hazards[i].timer <= 0) this.hazards.splice(i, 1);
+                    }
+
+                    // Ataki Bossa
+                    if (this.isBossStage && this.bossType) {
+                        this.bossAttackTimer -= dt;
+                        const pct = Math.max(0, (this.bossAttackTimer / this.bossAttackInterval) * 100);
+                        document.getElementById('bossAttackBar').style.width = `${pct}%`;
+                        document.getElementById('bossTimerText').textContent = `${Math.max(0, this.bossAttackTimer / 1000).toFixed(1)}s`;
+                        if (this.bossAttackTimer <= 0) {
+                            this.bossAttackTimer = this.bossAttackInterval;
+                            this.triggerBossAttack();
+                        }
+                    }
+
+                    this.updatePlayer(dt);
+                    this.updateGuards(dt);
+                    this.checkStealthDetection(dt);
+
+                    if (uiNeedsRefresh) this.updateUI();
+                }
+
+                this.draw();
+                requestAnimationFrame((t) => this.loop(t));
+            }
+
+            bindEvents() {
+                window.addEventListener('keydown', (e) => {
+                    if (e.code === 'KeyP' || e.code === 'Escape') {
+                        const helpModal = document.getElementById('helpModal');
+                        if (!helpModal.classList.contains('hidden')) {
+                            helpModal.classList.add('hidden');
+                            return;
+                        }
+                        if (this.state === 'PLAYING' || this.state === 'PAUSED') {
+                            e.preventDefault();
+                            this.togglePause();
+                            return;
+                        }
+                    }
+
+                    if (this.state !== 'PLAYING') return;
+
+                    switch (e.code) {
+                        case 'ArrowLeft':
+                        case 'KeyA':
+                            e.preventDefault();
+                            this.setDesiredDir(-1, 0);
+                            break;
+                        case 'ArrowRight':
+                        case 'KeyD':
+                            e.preventDefault();
+                            this.setDesiredDir(1, 0);
+                            break;
+                        case 'ArrowUp':
+                        case 'KeyW':
+                            e.preventDefault();
+                            this.setDesiredDir(0, -1);
+                            break;
+                        case 'ArrowDown':
+                        case 'KeyS':
+                            e.preventDefault();
+                            this.setDesiredDir(0, 1);
+                            break;
+                        case 'Digit1':
+                            this.useSkill(1);
+                            break;
+                        case 'Digit2':
+                            this.useSkill(2);
+                            break;
+                        case 'Digit3':
+                            this.useSkill(3);
+                            break;
+                        case 'Digit4':
+                            this.useSkill(4);
+                            break;
+                    }
+                });
+
+                document.getElementById('soundToggleBtnDesktop').addEventListener('click', () => sfx.toggle());
+                document.getElementById('soundToggleBtn').addEventListener('click', () => sfx.toggle());
+                document.getElementById('helpBtn').addEventListener('click', () => {
+                    document.getElementById('helpModal').classList.remove('hidden');
+                });
+            }
+        }
+
+        let game;
+        window.onload = () => {
+            game = new CyberHeistGame();
+        };
+    </script>
+</body>
+</html>
