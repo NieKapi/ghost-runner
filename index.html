@@ -308,10 +308,10 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-2 bg-slate-900/70 p-1.5 rounded border border-slate-800">
-                        <span class="w-5 h-5 rounded bg-rose-500/20 border border-rose-500 flex items-center justify-center text-rose-400 font-bold text-[10px]">━</span>
+                        <span class="w-5 h-5 rounded-full bg-cyan-500/20 border border-cyan-400 flex items-center justify-center text-cyan-300 font-bold text-xs">•</span>
                         <div>
-                            <div class="font-bold text-rose-300 leading-none">Bramka Laser</div>
-                            <div class="text-[10px] text-slate-400">Pulsująca bariera</div>
+                            <div class="font-bold text-cyan-300 leading-none">Pakiet Danych</div>
+                            <div class="text-[10px] text-slate-400">+Punkty i cel misji</div>
                         </div>
                     </div>
                     <div class="flex items-center gap-2 bg-slate-900/70 p-1.5 rounded border border-slate-800">
@@ -392,7 +392,7 @@
             </div>
 
             <p id="modalDescription" class="text-slate-300 text-sm md:text-base mb-6 leading-relaxed">
-                Infiltruj strzeżone serwerownie, unikaj <strong>stożków wzroku Strażników AI</strong> i bramek laserowych. Zaczynasz bez umiejętności — odblokuj <strong>do 4 modułów hakerskich</strong> (Kamuflaż, Fazowy Skok, Wabik, Przejęcie Ducha) i pokonaj <strong>6 Bossów AI</strong>!
+                Infiltruj strzeżone serwerownie, unikaj <strong>stożków wzroku Strażników AI</strong>. Zaczynasz bez umiejętności — odblokuj <strong>do 4 modułów hakerskich</strong> (Kamuflaż, Fazowy Skok, Wabik, Przejęcie Ducha) i pokonaj <strong>6 Bossów AI</strong>!
             </p>
 
             <!-- Game Over Stats Summary -->
@@ -517,14 +517,14 @@
 
         /**
          * SZABLONY LABIRYNTÓW 19x19
-         * # = Ściana, . = Dane, o = Overclock, V = Skarbiec, L = Bramka Laserowa, G = Dom Strażników, P = Start Gracza, ' ' = Pusto
+         * # = Ściana, . = Dane, o = Overclock, V = Skarbiec, G = Dom Strażników, P = Start Gracza, ' ' = Pusto
          */
         const MAZE_TEMPLATES = [
             [
                 "###################",
                 "#o....#.....#....o#",
                 "#.###.#.###.#.###.#",
-                "#.V......L......V.#",
+                "#.V.............V.#",
                 "#.###.#.###.#.###.#",
                 "#.....#.....#.....#",
                 "#####.### ###.#####",
@@ -536,7 +536,7 @@
                 "#####.#.###.#.#####",
                 "#........P........#",
                 "#.###.###.###.###.#",
-                "#o..#....L....#..o#",
+                "#o..#.........#..o#",
                 "###.#.#.#####.#.###",
                 "#V...............V#",
                 "###################"
@@ -545,13 +545,13 @@
                 "###################",
                 "#o..#....V....#..o#",
                 "#.#.#.#######.#.#.#",
-                "#.#......L......#.#",
+                "#.#.............#.#",
                 "#.###.###.###.###.#",
                 "#.................#",
                 "####.### # ###.####",
                 "####...........####",
                 "####.##     ##.####",
-                "...L... GGG ...L...",
+                "....... GGG .......",
                 "####.##     ##.####",
                 "####...........####",
                 "####.### # ###.####",
@@ -566,7 +566,7 @@
                 "###################",
                 "#V...#.......#...V#",
                 "#.###.#.#####.#.###",
-                "#o....L.......L..o#",
+                "#o...............o#",
                 "#.###.###.###.###.#",
                 "#.................#",
                 "###.#.### ###.#.###",
@@ -578,7 +578,7 @@
                 "###.#.###.###.#.###",
                 "#........P........#",
                 "#.###.###.###.###.#",
-                "#o..#....L....#..o#",
+                "#o..#.........#..o#",
                 "###.#.#######.#.###",
                 "#V...............V#",
                 "###################"
@@ -678,14 +678,13 @@
                 baseCost: 38,
                 baseCd: 14000,
                 maxLevel: 3,
-                getDesc: (lvl) => `Zamraża wszystkie AI, wyłącza Lasery i чиści pułapki Bossa na ${2.5 + lvl * 1.5}s`,
+                getDesc: (lvl) => `Zamraża wszystkie AI i czyści pułapki Bossa na ${2.5 + lvl * 1.5}s`,
                 execute: (g, lvl) => {
                     const dur = (2.5 + lvl * 1.5) * 1000;
                     g.guards.forEach(ghost => {
                         ghost.stunTimer = Math.max(ghost.stunTimer, dur);
                         g.spawnParticles(ghost.x * g.tileSize + 14, ghost.y * g.tileSize + 14, '#38bdf8', 10);
                     });
-                    g.empGateDisableTimer = dur;
                     g.blackoutTimer = 0;
                     g.reverseTimer = 0;
                     g.hazards = [];
@@ -840,13 +839,13 @@
                 apply: (g) => { g.mods.ghostKillGold += 8; g.gold += 12; }
             },
             {
-                id: 'laser_bypass',
-                name: 'Dekoder Laserowy',
-                icon: 'fa-shield-halved',
-                color: 'text-rose-400',
+                id: 'hazard_shield',
+                name: 'Filtr Środowiskowy',
+                icon: 'fa-shield-virus',
+                color: 'text-emerald-400',
                 maxStacks: 1,
-                desc: 'Pozwala bezpiecznie przenikać przez aktywne czerwone Bramki Laserowe bez utraty HP!',
-                apply: (g) => { g.mods.laserImmune = true; }
+                desc: 'Zapewnia niewrażliwość na toksyczne i płonące pułapki rozstawiane przez Bossów AI!',
+                apply: (g) => { g.mods.hazardImmune = true; }
             },
             {
                 id: 'emergency_cloak',
@@ -952,7 +951,7 @@
                     ghostEatBonusScore: 0,
                     guardVisionReduction: 0,
                     ghostKillGold: 5,
-                    laserImmune: false,
+                    hazardImmune: false,
                     sectorShields: 0,
                     cooldownMult: 1.0,
                     skillCostMult: 1.0,
@@ -986,10 +985,7 @@
                 this.cloakTimer = 0;
                 this.alertTimer = 0;
                 this.invulnTimer = 0;
-                this.empGateDisableTimer = 0;
                 this.speedBoostTimer = 0;
-                this.laserCycleTimer = 0;
-                this.lasersActive = true;
 
                 // Boss
                 this.isBossStage = false;
@@ -1038,7 +1034,6 @@
                 this.cloakTimer = 0;
                 this.alertTimer = 0;
                 this.invulnTimer = 1500;
-                this.empGateDisableTimer = 0;
                 this.speedBoostTimer = 0;
                 this.blackoutTimer = 0;
                 this.reverseTimer = 0;
@@ -1384,18 +1379,11 @@
                 const curTileY = Math.round(p.y);
                 this.collectAtTile(curTileX, curTileY);
 
-                // Sprawdzenie aktywnych bramek laserowych
-                if (this.maze[curTileY]?.[curTileX] === 'L' && this.lasersActive && this.empGateDisableTimer <= 0) {
-                    if (!this.mods.laserImmune && this.cloakTimer <= 0 && this.invulnTimer <= 0) {
-                        this.damagePlayer('⚡ PORAŻENIE BRAMKĄ LASEROWĄ!');
-                    }
-                }
-
                 // Sprawdzenie zagrożeń Bossa (ściany ogniowe / bio-miny)
                 for (let i = this.hazards.length - 1; i >= 0; i--) {
                     const h = this.hazards[i];
                     if (Math.hypot(p.x - h.x, p.y - h.y) < 0.55) {
-                        if (this.cloakTimer <= 0 && this.invulnTimer <= 0) {
+                        if (!this.mods.hazardImmune && this.cloakTimer <= 0 && this.invulnTimer <= 0) {
                             this.hazards.splice(i, 1);
                             this.damagePlayer('🔥 PUŁAPKA BOSSA!');
                             break;
@@ -2118,23 +2106,6 @@
                             ctx.textAlign = 'center';
                             ctx.textBaseline = 'middle';
                             ctx.fillText('💎', px + ts / 2, py + ts / 2 + 1);
-                        } else if (cell === 'L') {
-                            if (this.lasersActive && this.empGateDisableTimer <= 0) {
-                                ctx.strokeStyle = '#f43f5e';
-                                ctx.lineWidth = 3;
-                                ctx.beginPath();
-                                ctx.moveTo(px + 2, py + ts / 2);
-                                ctx.lineTo(px + ts - 2, py + ts / 2);
-                                ctx.stroke();
-                            } else {
-                                ctx.strokeStyle = 'rgba(100, 116, 139, 0.35)';
-                                ctx.setLineDash([3, 3]);
-                                ctx.beginPath();
-                                ctx.moveTo(px + 2, py + ts / 2);
-                                ctx.lineTo(px + ts - 2, py + ts / 2);
-                                ctx.stroke();
-                                ctx.setLineDash([]);
-                            }
                         }
                     }
                 }
@@ -2287,13 +2258,6 @@
                         uiNeedsRefresh = true;
                     }
 
-                    // Cykl bramek laserowych (co 3.2s włącz/wyłącz)
-                    this.laserCycleTimer += dt;
-                    if (this.laserCycleTimer >= 3200) {
-                        this.laserCycleTimer = 0;
-                        this.lasersActive = !this.lasersActive;
-                    }
-
                     // Odliczanie odnowienia umiejętności
                     this.unlockedSkills.forEach(s => {
                         if (s.cooldown > 0) {
@@ -2318,7 +2282,6 @@
                     tick('cloakTimer');
                     tick('alertTimer');
                     tick('invulnTimer');
-                    tick('empGateDisableTimer');
                     tick('speedBoostTimer');
                     tick('blackoutTimer');
                     tick('reverseTimer');
